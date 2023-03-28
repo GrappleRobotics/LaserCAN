@@ -1,0 +1,10 @@
+[package]
+name = "lasercan-common"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+cortex-m = { version = "0.7.6", features = ["critical-section-single-core"] }
+stm32f1xx-hal = { version = "0.10.0", features = ["rt", "stm32f103", "medium"] }

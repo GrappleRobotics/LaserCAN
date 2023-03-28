@@ -1,0 +1,14 @@
+(footprint "Pad" (version 20221018) (generator pcbnew)
+  (layer "F.Cu")
+  (attr smd)
+  (fp_text reference "REF**" (at 0 -0.5 unlocked) (layer "F.SilkS") hide
+      (effects (font (size 1 1) (thickness 0.15)))
+    (tstamp efc5ca88-dc50-47f0-bcfa-02509c26e89c)
+  )
+  (fp_text value "Pad" (at 0 1 unlocked) (layer "F.Fab") hide
+      (effects (font (size 1 1) (thickness 0.15)))
+    (tstamp d9957b06-4dc3-47c8-a49e-a0806755b31e)
+  )
+  (pad "1" smd roundrect (at 0 0) (size 3 5) (property pad_prop_testpoint) (layers "F.Cu" "F.Mask") (roundrect_rratio 0.25)
+    (thermal_bridge_angle 45) (tstamp 82024571-313c-4655-b300-834860312936))
+)

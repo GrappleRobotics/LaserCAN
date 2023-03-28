@@ -1,0 +1,5 @@
+(sym_lib_table
+  (version 7)
+  (lib (name "TC2050")(type "KiCad")(uri "${KIPRJMOD}/libs/TC2050-IDC-NL.kicad_sym")(options "")(descr ""))
+  (lib (name "Pad")(type "KiCad")(uri "${KIPRJMOD}/Pad.kicad_sym")(options "")(descr ""))
+)

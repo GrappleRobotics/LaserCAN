@@ -1,0 +1,61 @@
+# LaserCAN - FRC Example (Java)
+
+## Install the Vendor Library:
+In VSCode, hit CTRL+SHIFT+P and select "WPILib: Manage Vendor Libraries".  Select "Install new libraries (offline)" and paste the following URL: https://storage.googleapis.com/grapple-frc-maven/libgrapplefrc2023.json
+
+## Use it!
+```java
+package frc.robot;
+
+import au.grapplerobotics.LaserCan;
+import au.grapplerobotics.LaserCan.RangingMode;
+import au.grapplerobotics.LaserCan.RegionOfInterest;
+import au.grapplerobotics.LaserCan.TimingBudget;
+import edu.wpi.first.wpilibj.TimedRobot;
+
+public class Robot extends TimedRobot {
+  private LaserCan lc;
+
+  @Override
+  public void robotInit() {
+    lc = new LaserCan(0);
+    // Optionally initialise the settings of the LaserCAN, if you haven't already done so in GrappleHook
+    lc.setRangingMode(RangingMode.SHORT);
+    lc.setRegionOfInterest(new RegionOfInterest(8, 8, 16, 16));
+    lc.setTimingBudget(TimingBudget.TIMING_BUDGET_33MS);
+  }
+
+  @Override
+  public void robotPeriodic() {
+    LaserCan.Status status = lc.status();
+    if (status.status == 0)
+      System.out.println("The target is " + status.distance_mm + "mm away!");
+    else
+      System.out.println("Oh no! The target is out of range, or we can't get a reliable measurement!");
+  }
+
+  @Override
+  public void autonomousInit() {}
+
+  @Override
+  public void autonomousPeriodic() {}
+
+  @Override
+  public void teleopInit() {}
+
+  @Override
+  public void teleopPeriodic() {}
+
+  @Override
+  public void disabledInit() {}
+
+  @Override
+  public void disabledPeriodic() {}
+
+  @Override
+  public void testInit() {}
+
+  @Override
+  public void testPeriodic() {}
+}
+```
