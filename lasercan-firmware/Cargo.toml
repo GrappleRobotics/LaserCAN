@@ -15,6 +15,9 @@ panic-halt = "0.2.0"
 stm32f0xx-hal = { version = "0.18", features = ["stm32f072", "rt"]}
 vl53l1x-uld = "2.0.0"
 
+[profile.dev]
+opt-level = "s"
+
 # Uncomment for the panic example.
 # panic-itm = "0.4.1"
 

@@ -6,33 +6,175 @@ use core::{cell::RefCell, panic::PanicInfo};
 use cortex_m::interrupt::Mutex;
 use cortex_m_semihosting::hprintln;
 use led::Leds;
-use stm32f0xx_hal::{pwm::{PwmChannels, C1}, pac::TIM1};
+use stm32f0xx_hal::{pwm::{PwmChannels, C1}, pac::{TIM1, FLASH, I2C1}, i2c::I2c, gpio::{gpiob, Alternate, AF1}};
+use vl53l1x_uld::{VL53L1X, roi::ROI};
 
 pub mod led;
 pub mod frc_can;
 
 // Needs to be here so we can access from panic handler
-type LedT = Leds<PwmChannels<TIM1, C1>>;
+pub type LedT = Leds<PwmChannels<TIM1, C1>>;
 static LEDS: Mutex<RefCell<Option<LedT>>> = Mutex::new(RefCell::new(None));
+
+pub type SensorT = VL53L1X<I2c<I2C1, gpiob::PB6<Alternate<AF1>>, gpiob::PB7<Alternate<AF1>>>>;
+
+#[derive(Debug, Clone)]
+pub enum Error {
+  FlashUnlockError,
+  FlashCorrupted,
+  FlashPageError
+}
+
+const CONFIGURATION_MAGIC: u16 = 0x1CAB;
+const CONFIGURATION_ADDR: u32 = 0x0800_F000;
+// const CONFIGURATION_SECTOR: usize = 31;
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct Configuration {
+  pub magic: u16,
+  pub device_id: u16,
+  pub ranging_mode: vl53l1x_uld::DistanceMode,
+  pub region_of_interest: [u8; 2],
+  pub timing_budget: u16
+}
+
+impl Default for Configuration {
+  fn default() -> Self {
+    Self {
+      magic: CONFIGURATION_MAGIC,
+      device_id: 0x00,
+      ranging_mode: vl53l1x_uld::DistanceMode::Short,
+      region_of_interest: [16, 16],
+      timing_budget: 33
+    }
+  }
+}
+
+impl Configuration {
+  pub fn erase(flash: &mut FLASH) -> Result<(), Error> {
+    while flash.sr.read().bsy().bit_is_set() {}
+
+    // Unlock Flash
+    flash.keyr.write(|w| w.fkeyr().bits(0x45670123));
+    flash.keyr.write(|w| w.fkeyr().bits(0xCDEF89AB));
+
+    if !flash.cr.read().lock().is_unlocked() {
+      Err(Error::FlashUnlockError)?;
+    }
+
+    // Enable Erase Mode
+    flash.cr.write(|w| w.lock().unlocked().per().page_erase());
+    flash.ar.write(|w| w.far().bits(CONFIGURATION_ADDR));
+    flash.cr.write(|w| w.lock().unlocked().per().page_erase().strt().start());
+
+    while flash.sr.read().bsy().bit_is_set() {}
+
+    // Lock the flash
+    flash.cr.write(|w| w.lock().locked());
+
+    Ok(())
+  }
+
+  pub fn write(&self, flash: &mut FLASH) -> Result<(), Error> {
+    Self::erase(flash)?;
+
+    while flash.sr.read().bsy().bit_is_set() {}
+
+    // Unlock Flash
+    flash.keyr.write(|w| w.fkeyr().bits(0x45670123));
+    flash.keyr.write(|w| w.fkeyr().bits(0xCDEF89AB));
+
+    if !flash.cr.read().lock().is_unlocked() {
+      Err(Error::FlashUnlockError)?;
+    }
+
+    // Enable Programming Mode
+    flash.cr.write(|w| w.lock().unlocked().pg().program());
+
+    // Write the configuration
+    unsafe { 
+      // *(CONFIGURATION_ADDR as *mut Self) = self.clone
+      core::ptr::write_volatile(CONFIGURATION_ADDR as *mut u16, self.magic);
+      while flash.sr.read().bsy().bit_is_set() {}
+      core::ptr::write_volatile((CONFIGURATION_ADDR + 2) as *mut u16, self.device_id);
+      while flash.sr.read().bsy().bit_is_set() {}
+      core::ptr::write_volatile((CONFIGURATION_ADDR + 4) as *mut u16, if self.ranging_mode == vl53l1x_uld::DistanceMode::Long { 1 } else { 0 });
+      while flash.sr.read().bsy().bit_is_set() {}
+      core::ptr::write_volatile((CONFIGURATION_ADDR + 6) as *mut u16, (self.region_of_interest[0] as u16) << 8 | (self.region_of_interest[1] as u16));
+      while flash.sr.read().bsy().bit_is_set() {}
+      core::ptr::write_volatile((CONFIGURATION_ADDR + 8) as *mut u16, self.timing_budget);
+      while flash.sr.read().bsy().bit_is_set() {}
+    }
+
+    // Read it back
+    if self != &Self::read() {
+      // Lock and return error
+      flash.cr.write(|w| w.lock().locked());
+      Err(Error::FlashCorrupted)?;
+    }
+
+    flash.cr.write(|w| w.lock().unlocked().pg().clear_bit());
+
+    let sr = flash.sr.read();
+    if sr.pgerr().is_error() {
+      // Lock and return error
+      flash.cr.write(|w| w.lock().locked());
+      Err(Error::FlashPageError)?;
+    }
+
+    // Lock the flash
+    flash.cr.write(|w| w.lock().locked());
+
+    Ok(())
+  }
+
+  pub fn read() -> Self {
+    // unsafe { &*(CONFIGURATION_ADDR as *const Self) }
+    Self {
+      magic: unsafe { core::ptr::read_volatile::<u16>(CONFIGURATION_ADDR as *mut u16) },
+      device_id: unsafe { core::ptr::read_volatile::<u16>((CONFIGURATION_ADDR + 2) as *mut u16) },
+      ranging_mode: if unsafe { core::ptr::read_volatile::<u16>((CONFIGURATION_ADDR + 4) as *mut u16) } == 0 { vl53l1x_uld::DistanceMode::Short } else { vl53l1x_uld::DistanceMode::Long },
+      region_of_interest: [
+        unsafe { core::ptr::read_volatile::<u8>((CONFIGURATION_ADDR + 6) as *mut u8) },
+        unsafe { core::ptr::read_volatile::<u8>((CONFIGURATION_ADDR + 7) as *mut u8) },
+      ],
+      timing_budget: unsafe { core::ptr::read_volatile::<u16>((CONFIGURATION_ADDR + 8) as *mut u16) }, 
+    }
+  }
+
+  pub fn is_configured() -> bool {
+    return Self::read().magic == CONFIGURATION_MAGIC;
+  }
+
+  pub fn apply(&self, sensor: &mut SensorT) {
+    sensor.stop_ranging().unwrap();
+    sensor.set_distance_mode(self.ranging_mode).unwrap();
+    sensor.set_timing_budget_ms(self.timing_budget).unwrap();
+    sensor.set_roi(ROI::new(self.region_of_interest[0] as u16, self.region_of_interest[1] as u16)).unwrap();
+    sensor.start_ranging().unwrap();
+  }
+}
 
 #[rtic::app(device = stm32f0xx_hal::pac, peripherals = true)]
 mod app {
   use crate::frc_can::{FrcCanId, DEVICE_ULTRASONIC, MANUFACTURER_GRAPPLE};
   use hal::can::CanInstance;
+  use hal::pac::FLASH;
   use hal::timers::Event;
   use stm32f0xx_hal as hal;
-  use hal::{prelude::*, pac::I2C1};
-  use hal::gpio::{Alternate, AF1, gpiob};
+  use hal::prelude::*;
+  use hal::gpio::Alternate;
   use hal::i2c::I2c;
   use hal::can::bxcan::{Can, ExtendedId, Interrupts, Tx, Frame, Rx};
   use stm32f0xx_hal::can::bxcan::filter::Mask32;
   use vl53l1x_uld::{VL53L1X, MeasureResult, RangeStatus};
-  use crate::LEDS;
+  use crate::{LEDS, SensorT, Configuration};
   use crate::led::{Leds, LEDMode};
 
   const DEVICE_TYPE: u8 = DEVICE_ULTRASONIC;
   const DEVICE_MANUFACTURER: u8 = MANUFACTURER_GRAPPLE;
   const API_STATUS: u16 = 0x01;
+  const API_SET_ID: u16 = 0x02;
   const API_SET_RANGE: u16 = 0x10;
   const API_SET_ROI: u16 = 0x11;
   const API_SET_TIMING_BUDGET: u16 = 0x12;
@@ -41,7 +183,7 @@ mod app {
 
   #[shared]
   struct SharedResources {
-    sensor: VL53L1X<I2c<I2C1, gpiob::PB6<Alternate<AF1>>, gpiob::PB7<Alternate<AF1>>>>,
+    sensor: SensorT,
     result: Option<MeasureResult>,
     can_tx: Tx<CanT>
   }
@@ -49,12 +191,18 @@ mod app {
   #[local]
   struct LocalResources {
     can_send_timer: hal::timers::Timer<hal::pac::TIM2>,
-    can_rx: Rx<CanT>
+    can_rx: Rx<CanT>,
+    flash: FLASH
   }
 
   #[init]
   fn init(mut ctx: init::Context) -> (SharedResources, LocalResources, init::Monotonics) {
     let mut rcc = ctx.device.RCC.configure().sysclk(8.mhz()).pclk(8.mhz()).freeze(&mut ctx.device.FLASH);
+
+    // Setup Configuration
+    if !crate::Configuration::is_configured() {
+      crate::Configuration::default().write(&mut ctx.device.FLASH).unwrap();
+    }
 
     let gpioa = ctx.device.GPIOA.split(&mut rcc);
     let gpiob = ctx.device.GPIOB.split(&mut rcc);
@@ -107,9 +255,8 @@ mod app {
       panic!("Wrong Sensor ID!");
     }
     sensor.init(vl53l1x_uld::IOVoltage::Volt2_8).unwrap();
-    sensor.set_distance_mode(vl53l1x_uld::DistanceMode::Short).unwrap();
-    sensor.set_timing_budget_ms(33).unwrap();
     sensor.start_ranging().unwrap();
+    Configuration::read().apply(&mut sensor);
 
     // Initialise CAN
     let can_instance = CanInstance::new(ctx.device.CAN, can_tx, can_rx, &mut rcc);
@@ -149,7 +296,8 @@ mod app {
       },
       LocalResources {
         can_send_timer,
-        can_rx
+        can_rx,
+        flash: ctx.device.FLASH
       },
       init::Monotonics()
     )
@@ -185,7 +333,8 @@ mod app {
     // Send out a new status frame
     (&mut ctx.shared.result, &mut ctx.shared.can_tx).lock(|result, can_tx| {
       if let Some(result) = result {
-        let id: ExtendedId = FrcCanId::new(DEVICE_TYPE, DEVICE_MANUFACTURER, API_STATUS, 0x00).into();
+        let cfg = Configuration::read();
+        let id: ExtendedId = FrcCanId::new(DEVICE_TYPE, DEVICE_MANUFACTURER, API_STATUS, cfg.device_id as u8).into();
         let distance_bytes = result.distance_mm.to_le_bytes();
         let ambient_bytes = result.ambient.to_le_bytes();
         let msg = [ result.status as u8, distance_bytes[0], distance_bytes[1], ambient_bytes[0], ambient_bytes[1] ];
@@ -197,7 +346,7 @@ mod app {
     ctx.local.can_send_timer.wait().ok();
   }
 
-  #[task(binds = CEC_CAN, shared = [sensor], local = [can_rx])]
+  #[task(binds = CEC_CAN, shared = [sensor], local = [can_rx, flash])]
   fn can(mut ctx: can::Context) {
     loop {
       match ctx.local.can_rx.receive() {
@@ -212,28 +361,29 @@ mod app {
               } else if let Some(data) = frame.data() {
                 // Is it us?
                 let id = FrcCanId::from(id);
-                if id.device_type == DEVICE_TYPE && id.manufacturer == DEVICE_MANUFACTURER && id.device_number == 0x00 {
+                if id.device_type == DEVICE_TYPE && id.manufacturer == DEVICE_MANUFACTURER && id.device_number as u16 == Configuration::read().device_id {
                   // Decode API commands
-                  ctx.shared.sensor.lock(|sensor| {
-                    match id.api {
-                      API_SET_RANGE if data.len() == 1 => {
-                        sensor.stop_ranging().unwrap();
-                        sensor.set_distance_mode(if data[0] == 0 { vl53l1x_uld::DistanceMode::Short } else { vl53l1x_uld::DistanceMode::Long }).unwrap();
-                        sensor.start_ranging().unwrap();
-                      },
-                      API_SET_ROI if data.len() == 2 => {
-                        sensor.stop_ranging().unwrap();
-                        sensor.set_roi(vl53l1x_uld::roi::ROI::new(data[0] as u16, data[1] as u16)).unwrap();
-                        sensor.start_ranging().unwrap();
-                      },
-                      API_SET_TIMING_BUDGET if data.len() == 1 => {
-                        sensor.stop_ranging().unwrap();
-                        sensor.set_timing_budget_ms(data[0] as u16).unwrap();
-                        sensor.start_ranging().unwrap();
-                      }
-                      _ => ()
+                  let mut cfg = Configuration::read().clone();
+
+                  match id.api {
+                    API_SET_ID if data.len() == 1 => {
+                      cfg.device_id = data[0] as u16;
+                    },
+                    API_SET_RANGE if data.len() == 1 => {
+                      cfg.ranging_mode = if data[0] == 0 { vl53l1x_uld::DistanceMode::Short } else { vl53l1x_uld::DistanceMode::Long };
+                    },
+                    API_SET_ROI if data.len() == 2 => {
+                      cfg.region_of_interest[0] = data[0];
+                      cfg.region_of_interest[1] = data[1];
+                    },
+                    API_SET_TIMING_BUDGET if data.len() == 1 => {
+                      cfg.timing_budget = data[0] as u16;
                     }
-                  });
+                    _ => ()
+                  }
+
+                  cfg.write(ctx.local.flash).unwrap();
+                  ctx.shared.sensor.lock(|sensor| cfg.apply(sensor));
                 }
               }
             },
