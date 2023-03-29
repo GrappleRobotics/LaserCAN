@@ -3,7 +3,7 @@ authors = ["Jaci Brunning <jaci.brunning@gmail.com>"]
 edition = "2018"
 readme = "README.md"
 name = "lasercan-firmware"
-version = "0.1.0"
+version = "1.2.0"
 
 [dependencies]
 cortex-m = "0.6.0"
