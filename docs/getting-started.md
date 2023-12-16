@@ -9,7 +9,7 @@ To wire up your LaserCAN, solder one set of the V+ and GND pads to one of the be
 - **Preferred**: Connect V+ to the 6V (PWM) or 5V (DIO) source on your RoboRIO, and GND to any Ground pin on the RoboRIO.
 - Connect V+ and GND directly to a fused output on your PDP/PDH.
 
-_Why is RoboRIO power preferred? RoboRIO outputs are pre-regulated, which increases the power supply noise rejection on the LaserCAN. Furthermore, this pre-regulation means the LaserCAN is wasting less power since its inputs are closer to the target (3.3V), noting that the LaserCAN uses a linear regulator._
+_Why is RoboRIO power preferred? RoboRIO outputs are pre-regulated, which increases the power supply noise rejection on the LaserCAN. Furthermore, this pre-regulation means the LaserCAN is wasting less power since its inputs are closer to the target (3.3V), noting that the LaserCAN uses a linear regulator. **Using a LaserCAN directly on the Robot VBus is only supported for short periods of time, such as the length of a match.**_
 
 ### Daisy-Chain
 Alternatively, you can power the LaserCAN from another LaserCAN by connecting the V+ pads together, and likewise for the GND pads. **DO NOT** Daisy-Chain more than 8 LaserCANs in one chain!
