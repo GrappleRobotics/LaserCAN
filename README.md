@@ -1,6 +1,8 @@
 # Grapple LaserCAN
 Welcome to the open-source repository for the Grapple LaserCAN! That's right, everything's open source from the board files to the firmware.
 
+**[Buy Here](https://grapplerobotics.au/)**
+
 ![](docs/imgs/lasercan.png)
 
 ## [Looking for docs?](docs/getting-started.md)
