@@ -27,11 +27,13 @@ public class Robot extends TimedRobot {
 
   @Override
   public void robotPeriodic() {
-    LaserCan.Status status = lc.status();
-    if (status.status == 0)
-      System.out.println("The target is " + status.distance_mm + "mm away!");
-    else
+    LaserCan.Measurement measurement = lc.getMeasurement();
+    if (measurement.status == LaserCan.LASERCAN_STATUS_VALID_MEASUREMENT) {
+      System.out.println("The target is " + measurement.distance_mm + "mm away!");
+    } else {
       System.out.println("Oh no! The target is out of range, or we can't get a reliable measurement!");
+      // You can still use distance_mm in here, if you're ok tolerating a clamped value or an unreliable measurement.
+    }
   }
 
   @Override

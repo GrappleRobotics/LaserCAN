@@ -48,11 +48,12 @@ void Robot::RobotInit() {
 }
 
 void Robot::RobotPeriodic() {
-  libgrapplefrc::LaserCanStatus status = lc->status();
-  if (status.status == 0) {
-    std::cout << "The target is " << status.distance_mm << "mm away!" << std::endl;
+  libgrapplefrc::LaserCanMeasurement measurement = lc->status();
+  if (measurement.status == libgrapplefrc::LASERCAN_STATUS_VALID_MEASUREMENT) {
+    std::cout << "The target is " << measurement.distance_mm << "mm away!" << std::endl;
   } else {
     std::cout << "Oh no! The target is out of range, or we can't get a reliable measurement!" << std::endl;
+    // You can still use distance_mm in here, if you're ok tolerating a clamped value or an unreliable measurement.
   }
 }
 
