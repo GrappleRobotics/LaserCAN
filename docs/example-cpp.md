@@ -10,7 +10,7 @@ In VSCode, hit CTRL+SHIFT+P and select "WPILib: Manage Vendor Libraries".  Sele
 #pragma once
 
 #include <frc/TimedRobot.h>
-#include <libgrapplefrc/LaserCan.h>
+#include <grpl/LaserCan.h>
 
 class Robot : public frc::TimedRobot {
  public:
@@ -29,7 +29,7 @@ class Robot : public frc::TimedRobot {
   void TestInit() override;
   void TestPeriodic() override;
  private:
-  libgrapplefrc::LaserCan *lc;
+  grpl::LaserCan *lc;
 };
 ```
 
@@ -40,17 +40,17 @@ class Robot : public frc::TimedRobot {
 #include <iostream>
 
 void Robot::RobotInit() {
-  lc = new libgrapplefrc::LaserCan(0);
+  lc = new grpl::LaserCan(0);
     // Optionally initialise the settings of the LaserCAN, if you haven't already done so in GrappleHook
-  lc->set_ranging_mode(libgrapplefrc::LaserCanRangingMode::Long);
-  lc->set_timing_budget(libgrapplefrc::LaserCanTimingBudget::TimingBudget100ms);
-  lc->set_roi(libgrapplefrc::LaserCanROI{ 8, 8, 16, 16 });
+  lc->set_ranging_mode(grpl::LaserCanRangingMode::Long);
+  lc->set_timing_budget(grpl::LaserCanTimingBudget::TimingBudget100ms);
+  lc->set_roi(grpl::LaserCanROI{ 8, 8, 16, 16 });
 }
 
 void Robot::RobotPeriodic() {
-  libgrapplefrc::LaserCanMeasurement measurement = lc->status();
-  if (measurement.status == libgrapplefrc::LASERCAN_STATUS_VALID_MEASUREMENT) {
-    std::cout << "The target is " << measurement.distance_mm << "mm away!" << std::endl;
+  std::optional<grpl::LaserCanMeasurement> measurement = lc->get_measurement();
+  if (measurement.has_value() && measurement.value().status == grpl::LASERCAN_STATUS_VALID_MEASUREMENT) {
+    std::cout << "The target is " << measurement.value().distance_mm << "mm away!" << std::endl;
   } else {
     std::cout << "Oh no! The target is out of range, or we can't get a reliable measurement!" << std::endl;
     // You can still use distance_mm in here, if you're ok tolerating a clamped value or an unreliable measurement.

@@ -8,9 +8,6 @@ In VSCode, hit CTRL+SHIFT+P and select "WPILib: Manage Vendor Libraries".  Sele
 package frc.robot;
 
 import au.grapplerobotics.LaserCan;
-import au.grapplerobotics.LaserCan.RangingMode;
-import au.grapplerobotics.LaserCan.RegionOfInterest;
-import au.grapplerobotics.LaserCan.TimingBudget;
 import edu.wpi.first.wpilibj.TimedRobot;
 
 public class Robot extends TimedRobot {
@@ -20,15 +17,15 @@ public class Robot extends TimedRobot {
   public void robotInit() {
     lc = new LaserCan(0);
     // Optionally initialise the settings of the LaserCAN, if you haven't already done so in GrappleHook
-    lc.setRangingMode(RangingMode.SHORT);
-    lc.setRegionOfInterest(new RegionOfInterest(8, 8, 16, 16));
-    lc.setTimingBudget(TimingBudget.TIMING_BUDGET_33MS);
+    lc.setRangingMode(LaserCan.RangingMode.SHORT);
+    lc.setRegionOfInterest(new LaserCan.RegionOfInterest(8, 8, 16, 16));
+    lc.setTimingBudget(LaserCan.TimingBudget.TIMING_BUDGET_33MS);
   }
 
   @Override
   public void robotPeriodic() {
     LaserCan.Measurement measurement = lc.getMeasurement();
-    if (measurement.status == LaserCan.LASERCAN_STATUS_VALID_MEASUREMENT) {
+    if (measurement != null && measurement.status == LaserCan.LASERCAN_STATUS_VALID_MEASUREMENT) {
       System.out.println("The target is " + measurement.distance_mm + "mm away!");
     } else {
       System.out.println("Oh no! The target is out of range, or we can't get a reliable measurement!");
