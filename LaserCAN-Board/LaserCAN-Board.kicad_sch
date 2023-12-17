@@ -4,6 +4,14 @@
 
   (paper "A4")
 
+  (title_block
+    (title "LaserCAN")
+    (rev "3")
+    (company "Grapple Robotics")
+    (comment 1 "https://grapplerobotics.au")
+    (comment 2 "https://github.com/GrappleRobotics/LaserCAN")
+  )
+
   (lib_symbols
     (symbol "Device:C_Small" (pin_numbers hide) (pin_names (offset 0.254) hide) (in_bom yes) (on_board yes)
       (property "Reference" "C" (at 0.254 1.778 0)
@@ -1962,6 +1970,10 @@
   (text "SENSOR" (at 181.61 67.31 0)
     (effects (font (size 2.54 2.54) (thickness 0.508) bold) (justify left bottom))
     (uuid ed8b488d-0687-43a1-98c7-814f8c51a75c)
+  )
+  (text "TODO(17/12/23): Beef up the filtering on this" (at 153.67 57.15 0)
+    (effects (font (size 1.27 1.27)) (justify left bottom))
+    (uuid f8242e06-60c4-4a86-b494-f1c08963e709)
   )
 
   (label "CAN_RX" (at 106.68 69.85 180) (fields_autoplaced)
