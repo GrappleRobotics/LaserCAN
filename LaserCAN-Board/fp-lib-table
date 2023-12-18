@@ -2,4 +2,5 @@
   (version 7)
   (lib (name "Project")(type "KiCad")(uri "${KIPRJMOD}/libs")(options "")(descr ""))
   (lib (name "Pad")(type "KiCad")(uri "${KIPRJMOD}/Pad.pretty")(options "")(descr ""))
+  (lib (name "NCP730BMT330TBG")(type "KiCad")(uri "${KIPRJMOD}/libs/NCP730BMT330TBG.pretty")(options "")(descr ""))
 )
