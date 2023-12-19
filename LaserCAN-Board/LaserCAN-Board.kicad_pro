@@ -58,7 +58,8 @@
       ],
       "drc_exclusions": [
         "lib_footprint_issues|140969271|103935973|962b4454-b0bb-4a5e-a7c7-f27a2fbf4866|00000000-0000-0000-0000-000000000000",
-        "lib_footprint_mismatch|132537200|102209600|3f289810-6415-43e8-8047-91f811d7523a|00000000-0000-0000-0000-000000000000"
+        "lib_footprint_mismatch|132537200|102209600|3f289810-6415-43e8-8047-91f811d7523a|00000000-0000-0000-0000-000000000000",
+        "lib_footprint_mismatch|134924800|117043200|1b42251f-8190-413e-9f8d-cc200d3c9cb8|00000000-0000-0000-0000-000000000000"
       ],
       "meta": {
         "version": 2
@@ -459,20 +460,7 @@
     },
     "net_colors": null,
     "netclass_assignments": null,
-    "netclass_patterns": [
-      {
-        "netclass": "Power",
-        "pattern": "+12V"
-      },
-      {
-        "netclass": "Power",
-        "pattern": "+3V3"
-      },
-      {
-        "netclass": "Power",
-        "pattern": "+5V"
-      }
-    ]
+    "netclass_patterns": []
   },
   "pcbnew": {
     "last_paths": {
