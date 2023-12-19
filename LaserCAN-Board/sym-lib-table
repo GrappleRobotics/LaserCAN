@@ -3,4 +3,5 @@
   (lib (name "TC2050")(type "KiCad")(uri "${KIPRJMOD}/libs/TC2050-IDC-NL.kicad_sym")(options "")(descr ""))
   (lib (name "Pad")(type "KiCad")(uri "${KIPRJMOD}/Pad.kicad_sym")(options "")(descr ""))
   (lib (name "NCP730BMT330TBG")(type "KiCad")(uri "${KIPRJMOD}/libs/NCP730BMT330TBG.kicad_sym")(options "")(descr ""))
+  (lib (name "AP62200TWU-7")(type "KiCad")(uri "${KIPRJMOD}/libs/AP62200TWU-7.kicad_sym")(options "")(descr ""))
 )

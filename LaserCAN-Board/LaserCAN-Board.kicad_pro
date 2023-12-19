@@ -56,7 +56,10 @@
           "width": 0.0
         }
       ],
-      "drc_exclusions": [],
+      "drc_exclusions": [
+        "lib_footprint_issues|140969271|103935973|962b4454-b0bb-4a5e-a7c7-f27a2fbf4866|00000000-0000-0000-0000-000000000000",
+        "lib_footprint_mismatch|132537200|102209600|3f289810-6415-43e8-8047-91f811d7523a|00000000-0000-0000-0000-000000000000"
+      ],
       "meta": {
         "version": 2
       },
@@ -98,7 +101,7 @@
         "skew_out_of_range": "error",
         "solder_mask_bridge": "error",
         "starved_thermal": "error",
-        "text_height": "warning",
+        "text_height": "ignore",
         "text_thickness": "warning",
         "through_hole_pad_without_hole": "error",
         "too_many_vias": "error",
