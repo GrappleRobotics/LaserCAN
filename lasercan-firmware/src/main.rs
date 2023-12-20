@@ -74,7 +74,7 @@ mod app {
   use alloc::{collections::VecDeque, borrow::ToOwned};
   use bxcan::{ExtendedId, filter::Mask32, Interrupts, Tx, Rx0};
   use shared_bus::new_cortexm;
-  use vl53l1x_uld::{VL53L1X, roi::{ROI, ROICenter}, MeasureResult};
+  use vl53l1x_uld::{VL53L1X, roi::{ROI, ROICenter}, MeasureResult, RangeStatus};
   use crate::{configuration::LaserCanConfiguration, META_VERSION, META_MODEL_ID};
   use grapple_m24c64::M24C64;
   use grapple_config::GenericConfigurationProvider;
@@ -101,6 +101,7 @@ mod app {
   struct LocalResources {
     watchdog: IWDG,
     led_timer: CounterMs<TIM1>,
+    led_counter: u32,
     status_timer: CounterHz<TIM2>,
     can_rx: Rx0<Can<CAN1>>,
     can_tx: Tx<Can<CAN1>>,
@@ -131,7 +132,7 @@ mod app {
     status_led.set_low();
 
     let mut led_timer = ctx.device.TIM1.counter_ms(&clocks);
-    led_timer.start(100.millis()).unwrap();
+    led_timer.start(50.millis()).unwrap();
     led_timer.listen(timer::Event::Update);
 
     heap_init();
@@ -230,16 +231,17 @@ mod app {
     status_led.set_high();
     (
       SharedResources {
-        blink_timer: 20,
+        blink_timer: 40,
         status_led: status_led.erase(),
         config: config_provider,
         sensor,
         last_result: None,
-        can_tx_queue: VecDeque::with_capacity(64)
+        can_tx_queue: VecDeque::with_capacity(64),
       },
       LocalResources {
         watchdog: ctx.device.IWDG,
         led_timer,
+        led_counter: 0,
         status_timer,
         can_rx,
         can_tx,
@@ -264,23 +266,32 @@ mod app {
     crate::TIME_MS.fetch_add(100, core::sync::atomic::Ordering::Relaxed);
   }
 
-  #[idle(shared = [], local = [])]
-  fn idle(ctx: idle::Context) -> ! {
-    loop {
-    }
-  }
-
-  #[task(binds = TIM1_UP, priority = 1, shared = [blink_timer, status_led], local = [led_timer])]
+  #[task(binds = TIM1_UP, priority = 1, shared = [blink_timer, status_led, last_result, config], local = [led_timer, led_counter])]
   fn led_tick(ctx: led_tick::Context) {
-    (ctx.shared.blink_timer, ctx.shared.status_led).lock(|timer, led| {
+    let counter = *ctx.local.led_counter;
+
+    (ctx.shared.blink_timer, ctx.shared.status_led, ctx.shared.last_result, ctx.shared.config).lock(|timer, led, last_result, config| {
       if *timer > 0 {
-        led.toggle();
+        if counter % 2 == 0 {
+          led.toggle();
+        }
         *timer -= 1;
+      } else if let Some(lr) = last_result {
+        let led_thresh = config.current().led_threshold;
+        if lr.status == RangeStatus::Valid && lr.distance_mm < led_thresh && led_thresh > 20 {
+          let partial = ((lr.distance_mm as u32) * 20) / (led_thresh as u32) + 1;   // Plus one so we don't modulo by zero and crash the MCU :)
+          if counter % partial == 0 {
+            led.toggle();
+          }
+        } else {
+          led.set_high();
+        }
       } else {
         led.set_high();
       }
     });
 
+    *ctx.local.led_counter = counter.wrapping_add(1);
     ctx.local.led_timer.clear_interrupt(timer::Event::Update);
   }
 
@@ -371,7 +382,7 @@ mod app {
                                 ctx.shared.can_tx_queue.lock(|q| enqueue(CANMessage::Message(new_msg), q));
                               },
                               device_info::GrappleDeviceInfo::Blink { serial } if serial == my_serial => {
-                                ctx.shared.blink_timer.lock(|timer| { *timer = 30 });
+                                ctx.shared.blink_timer.lock(|timer| { *timer = 60 });
                               },
                               device_info::GrappleDeviceInfo::SetName { serial, name } if serial == my_serial => {
                                 cfg.current_mut().name = name;
