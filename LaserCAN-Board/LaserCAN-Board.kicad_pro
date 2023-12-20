@@ -46,7 +46,7 @@
         "silk_text_upright": false,
         "zones": {
           "45_degree_only": false,
-          "min_clearance": 0.19999999999999998
+          "min_clearance": 0.5
         }
       },
       "diff_pair_dimensions": [
@@ -57,9 +57,9 @@
         }
       ],
       "drc_exclusions": [
-        "lib_footprint_issues|140969271|103935973|962b4454-b0bb-4a5e-a7c7-f27a2fbf4866|00000000-0000-0000-0000-000000000000",
-        "lib_footprint_mismatch|132537200|102209600|3f289810-6415-43e8-8047-91f811d7523a|00000000-0000-0000-0000-000000000000",
-        "lib_footprint_mismatch|134924800|117043200|1b42251f-8190-413e-9f8d-cc200d3c9cb8|00000000-0000-0000-0000-000000000000"
+        "courtyards_overlap|126817526|104430001|074e67d5-c607-4dbf-839d-f32323136a7b|653e7f0f-2d76-4e08-9190-413d382caad8",
+        "lib_footprint_issues|136652437|117855504|22215542-a325-4187-836b-3a60cf88c3ab|00000000-0000-0000-0000-000000000000",
+        "lib_footprint_mismatch|137668000|117221000|3f289810-6415-43e8-8047-91f811d7523a|00000000-0000-0000-0000-000000000000"
       ],
       "meta": {
         "version": 2
