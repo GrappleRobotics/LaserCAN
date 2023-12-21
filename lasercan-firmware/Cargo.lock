@@ -347,7 +347,7 @@ dependencies = [
 
 [[package]]
 name = "lasercan-firmware"
-version = "0.1.0"
+version = "2023.0.0"
 dependencies = [
  "bxcan",
  "cortex-m",

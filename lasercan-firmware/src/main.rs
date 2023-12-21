@@ -340,6 +340,11 @@ mod app {
           Err(nb::Error::WouldBlock) => break,
           Err(_) => unreachable!()
         }
+      };
+
+      // Don't let the queue grow too much, otherwise we enter a crash loop
+      while q.len() > 50 {
+        q.pop_front();
       }
     });
   }
