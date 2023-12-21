@@ -56,15 +56,7 @@
           "width": 0.0
         }
       ],
-      "drc_exclusions": [
-        "clearance|129650098|102874000|bd085c91-63fe-4d7e-965a-3a25648fade5|5d016d06-ea9e-49fc-991b-4851947546e9",
-        "clearance|138269500|107459738|be5947fa-d9bb-4d0f-aef2-6470938f5e9f|5d016d06-ea9e-49fc-991b-4851947546e9",
-        "lib_footprint_issues|133401237|122529104|22215542-a325-4187-836b-3a60cf88c3ab|00000000-0000-0000-0000-000000000000",
-        "lib_footprint_mismatch|133426200|122605800|3f289810-6415-43e8-8047-91f811d7523a|00000000-0000-0000-0000-000000000000",
-        "lib_footprint_mismatch|138338262|107488360|223f2f85-25c7-4f42-b2c4-4d330ef25091|00000000-0000-0000-0000-000000000000",
-        "solder_mask_bridge|128659000|102874000|bd085c91-63fe-4d7e-965a-3a25648fade5|a9210abb-617d-42d0-812c-e600cb75b238",
-        "solder_mask_bridge|139195262|106996360|be5947fa-d9bb-4d0f-aef2-6470938f5e9f|caf1908e-dd8b-450d-965d-3e0acc07ac06"
-      ],
+      "drc_exclusions": [],
       "meta": {
         "version": 2
       },
@@ -450,7 +442,7 @@
         "pcb_color": "rgba(0, 0, 0, 0.000)",
         "schematic_color": "rgba(0, 0, 0, 0.000)",
         "track_width": 0.25,
-        "via_diameter": 0.4,
+        "via_diameter": 0.5,
         "via_drill": 0.2,
         "wire_width": 6
       },
@@ -463,12 +455,12 @@
         "line_style": 0,
         "microvia_diameter": 0.3,
         "microvia_drill": 0.1,
-        "name": "Power",
+        "name": "CAN",
         "pcb_color": "rgba(0, 0, 0, 0.000)",
         "schematic_color": "rgba(0, 0, 0, 0.000)",
-        "track_width": 0.28,
+        "track_width": 0.12,
         "via_diameter": 0.5,
-        "via_drill": 0.3,
+        "via_drill": 0.2,
         "wire_width": 6
       }
     ],
@@ -477,7 +469,16 @@
     },
     "net_colors": null,
     "netclass_assignments": null,
-    "netclass_patterns": []
+    "netclass_patterns": [
+      {
+        "netclass": "CAN",
+        "pattern": "*CANL"
+      },
+      {
+        "netclass": "CAN",
+        "pattern": "*CANH"
+      }
+    ]
   },
   "pcbnew": {
     "last_paths": {
