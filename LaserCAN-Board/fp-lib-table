@@ -5,4 +5,5 @@
   (lib (name "NCP730BMT330TBG")(type "KiCad")(uri "${KIPRJMOD}/libs/NCP730BMT330TBG.pretty")(options "")(descr ""))
   (lib (name "AP62200TWU-7")(type "KiCad")(uri "${KIPRJMOD}/libs/AP62200TWU-7.pretty")(options "")(descr ""))
   (lib (name "PESD1CAN")(type "KiCad")(uri "${KIPRJMOD}/libs/PESD1CAN.pretty")(options "")(descr ""))
+  (lib (name "SI2309CDS-T1-GE3")(type "KiCad")(uri "${KIPRJMOD}/libs/SI2309CDS-T1-GE3.pretty")(options "")(descr ""))
 )
