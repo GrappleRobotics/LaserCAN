@@ -6168,7 +6168,7 @@
     (property "Datasheet" "~" (at 217.17 252.73 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (property "LCSC Part" "C72043" (at 217.17 252.73 0)
+    (property "LCSC Part" "C965804" (at 217.17 252.73 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (pin "1" (uuid f82ce095-829b-41ff-b9eb-2bd969b4d768))
