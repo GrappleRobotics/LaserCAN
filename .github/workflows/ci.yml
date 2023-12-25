@@ -15,7 +15,7 @@ jobs:
       - name: Add rust target
         run: rustup target install thumbv7m-none-eabi
       - name: Install Toolchain for utils
-        run: sudo apt-get update && sudo apt-get install -y gdb-arm-none-eabi
+        run: sudo apt-get update && sudo apt-get install -y binutils-arm-none-eabi
       - name: Make Target Dir
         run: mkdir -p target
       - name: Build
