@@ -14,6 +14,8 @@ jobs:
           components: clippy
       - name: Add rust target
         run: rustup target install thumbv7m-none-eabi
+      - name: Make Target Dir
+        run: mkdir -p target
       - name: Build
         run: make
       - uses: actions/upload-artifact@v3
