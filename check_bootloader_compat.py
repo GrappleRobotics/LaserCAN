@@ -4,11 +4,15 @@
 import sys
 import os
 
+compat = True
 with open("./target/lasercan-firmware-update.grplfw", 'rb') as f:
   data = f.read()
   for i in range(0, len(data), 1024):
     if data[i] == 0xFF:
       print("Bootloader 0.1.0 incompatible file! (index=0x{:x})".format(i), file=sys.stderr)
-      os.remove("target/lasercan-firmware-update.elf")
-      os.remove("target/lasercan-firmware-update.grplfw")
-      exit(1)
+      compat = False
+
+if not compat:
+  os.remove("target/lasercan-firmware-update.elf")
+  os.remove("target/lasercan-firmware-update.grplfw")
+  exit(1)

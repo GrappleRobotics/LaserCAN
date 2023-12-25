@@ -40,9 +40,9 @@ checksum = "f8fe8f5a8a398345e52358e18ff07cc17a568fbca5c6f73873d3a62056309603"
 
 [[package]]
 name = "binmarshal"
-version = "0.2.7"
+version = "0.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "428201018947a6384baeef8633e20d651da0a2c52967d274cad38015ecf91b17"
+checksum = "ef52819335fe738d04a0941a49ccd3b54c12660611456e2919a6bbb86787bc7a"
 dependencies = [
  "anyhow",
  "binmarshal-macros",
@@ -277,9 +277,9 @@ dependencies = [
 
 [[package]]
 name = "grapple-frc-msgs"
-version = "2024.0.3"
+version = "2024.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "03e9c1045763fa5dc9ea1a5f062514d2576f97bf23f3dc2da553538f02655cb5"
+checksum = "27e76fc8d413a8a60ff7050f6ac659d4f32123e7ff6ef71dca4b3609374e70e2"
 dependencies = [
  "anyhow",
  "binmarshal",
