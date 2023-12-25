@@ -324,6 +324,8 @@ mod app {
 
   #[task(binds = USB_HP_CAN_TX, priority = 13, local = [can_tx], shared = [can_tx_queue, status_led])]
   fn can_tx(mut ctx: can_tx::Context) {
+    unsafe { asm!("nop") }
+
     let tx = ctx.local.can_tx;
 
     tx.clear_interrupt_flags();
@@ -355,6 +357,8 @@ mod app {
 
   #[task(binds = USB_LP_CAN_RX0, shared = [can_tx_queue, config, blink_timer, sensor], local = [can_rx, flash, reassemble])]
   fn can_rx(mut ctx: can_rx::Context) {
+    unsafe { asm!("nop") }
+    
     let my_serial = lasercan_common::get_serial_hash();
 
     unsafe { asm!("nop") }
