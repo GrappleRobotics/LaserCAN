@@ -69,7 +69,7 @@ impl<E: core::fmt::Debug, T: vl53l1x_uld::comm::Write<Error = E> + vl53l1x_uld::
 
 #[rtic::app(device = stm32f1xx_hal::pac, peripherals = true)]
 mod app {
-  use core::{marker::PhantomData, ops::Deref};
+  use core::{marker::PhantomData, ops::Deref, arch::asm};
 
   use alloc::{collections::VecDeque, borrow::ToOwned};
   use bxcan::{ExtendedId, filter::Mask32, Interrupts, Tx, Rx0};
@@ -356,6 +356,8 @@ mod app {
   #[task(binds = USB_LP_CAN_RX0, shared = [can_tx_queue, config, blink_timer, sensor], local = [can_rx, flash, reassemble])]
   fn can_rx(mut ctx: can_rx::Context) {
     let my_serial = lasercan_common::get_serial_hash();
+
+    unsafe { asm!("nop") }
 
     ctx.shared.config.lock(|cfg| {
       loop {

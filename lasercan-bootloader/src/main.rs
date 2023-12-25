@@ -271,7 +271,8 @@ mod app {
                           let mut flash_writer = ctx.local.flash.writer(flash::SectorSize::Sz1K, flash::FlashSize::Sz64K);
                           let user_code_offset = FLASH_USER as usize - FLASH_START as usize;
 
-                          if flash_writer.read((user_code_offset + *ctx.local.offset) as u32, 1).unwrap()[0] != 0xFF {
+                          // Erase the sector if required. Obviously, this requires our data step size to be a factor of 1024. 
+                          if (user_code_offset + *ctx.local.offset) as u32 % 1024 == 0 {
                             // Erase the flash region
                             flash_writer.erase((user_code_offset + *ctx.local.offset) as u32, 1024).unwrap();
                           }

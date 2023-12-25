@@ -1,0 +1,22 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - name: Setup Rust
+        uses: ATiltedTree/setup-rust@v1
+        with:
+          rust-version: stable
+          components: clippy
+      - name: Add rust target
+        run: rustup target install thumbv7m-none-eabi
+      - name: Build
+        run: make
+      - uses: actions/upload-artifact@v3
+        with:
+          name: Artifacts
+          path: target

@@ -24,6 +24,9 @@ rustflags = [
   # "-C", "linker=arm-none-eabi-gcc",
   # "-C", "link-arg=-Wl,-Tlink.x",
   # "-C", "link-arg=-nostartfiles",
+
+  # Due to our mistakes in bootloader 0.1.0, we have to play around with alignment.
+  "-C", "llvm-args=-align-all-functions=5"
 ]
 
 [build]
