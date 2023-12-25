@@ -5,7 +5,7 @@ mod configuration;
 
 extern crate alloc;
 
-use core::{mem::MaybeUninit, sync::atomic::{AtomicUsize, AtomicU32}};
+use core::{mem::MaybeUninit, sync::atomic::AtomicU32};
 
 use embedded_alloc::Heap;
 use grapple_frc_msgs::grapple::device_info::GrappleModelId;
@@ -78,12 +78,11 @@ mod app {
   use crate::{configuration::LaserCanConfiguration, META_VERSION, META_MODEL_ID};
   use grapple_m24c64::M24C64;
   use grapple_config::GenericConfigurationProvider;
-  use grapple_frc_msgs::{binmarshal::BinMarshal, grapple::lasercan::{self, LaserCanStatusFrame}};
+  use grapple_frc_msgs::{binmarshal::{BinMarshal, BitView}, grapple::{lasercan::{self, LaserCanStatusFrame}, fragments::FragmentReassembler, firmware::GrappleFirmwareMessage, errors::GrappleError}, MessageId, DEVICE_ID_BROADCAST, ManufacturerMessage};
   use lasercan_common::bootutil::feed_watchdog;
-  use stm32f1xx_hal::{prelude::*, flash::{FlashExt, self}, pac::{IWDG, TIM1, CAN1, TIM2, TIM3, I2C1, Interrupt, TIM4}, timer::{self, CounterMs, CounterHz, SysCounterHz, SysCounterUs}, gpio::{ErasedPin, Output, Pin, Alternate, OpenDrain}, can::Can, serial::Rx, i2c::{I2c, Mode, BlockingI2c}, time::MonoTimer};
-  use grapple_frc_msgs::{DEVICE_ID_BROADCAST, DEVICE_TYPE_BROADCAST, DEVICE_TYPE_FIRMWARE_UPGRADE, Validate, ManufacturerMessage, Message};
+  use stm32f1xx_hal::{prelude::*, flash::{FlashExt, self}, pac::{IWDG, TIM1, CAN1, TIM2, I2C1, Interrupt}, timer::{self, CounterMs, CounterHz}, gpio::{ErasedPin, Output, Alternate, OpenDrain}, can::Can, i2c::{Mode, BlockingI2c}};
+  use grapple_frc_msgs::{DEVICE_TYPE_BROADCAST, DEVICE_TYPE_FIRMWARE_UPGRADE, Validate};
   use grapple_frc_msgs::grapple::*;
-  use grapple_frc_msgs::can::{CANId, UnparsedCANMessage, CANMessage};
 
   use crate::heap_init;
 
@@ -106,7 +105,7 @@ mod app {
     can_rx: Rx0<Can<CAN1>>,
     can_tx: Tx<Can<CAN1>>,
     flash: flash::Parts,
-    reassemble: grapple_frc_msgs::can::FragmentReassembler
+    reassemble: FragmentReassembler
   }
 
   #[init]
@@ -181,20 +180,20 @@ mod app {
     
     unsafe {
       can_bus.modify_filters()
-      // Firmware Update Messages
+        // Firmware Update Messages
         .enable_bank(0, bxcan::Fifo::Fifo0, Mask32::frames_with_ext_id(
-          ExtendedId::new_unchecked(CANId { device_type: DEVICE_TYPE_FIRMWARE_UPGRADE, manufacturer: MANUFACTURER_GRAPPLE, api_class: 0x00, api_index: 0x00, device_id: DEVICE_ID_BROADCAST }.into()),
-          ExtendedId::new_unchecked(CANId { device_type: 0xFF, manufacturer: 0xFF, api_class: 0x00, api_index: 0x00, device_id: 0xFF }.into()),
+          ExtendedId::new_unchecked(MessageId { device_type: DEVICE_TYPE_FIRMWARE_UPGRADE, manufacturer: MANUFACTURER_GRAPPLE, api_class: 0x00, api_index: 0x00, device_id: DEVICE_ID_BROADCAST }.into()),
+          ExtendedId::new_unchecked(MessageId { device_type: 0xFF, manufacturer: 0xFF, api_class: 0x00, api_index: 0x00, device_id: 0xFF }.into()),
         ))
         // Broadcast Messages
         .enable_bank(1, bxcan::Fifo::Fifo0, Mask32::frames_with_ext_id(
-          ExtendedId::new_unchecked(CANId { device_type: DEVICE_TYPE_BROADCAST, manufacturer: MANUFACTURER_GRAPPLE, api_class: 0x00, api_index: 0x00, device_id: DEVICE_ID_BROADCAST }.into()),
-          ExtendedId::new_unchecked(CANId { device_type: 0xFF, manufacturer: 0xFF, api_class: 0x00, api_index: 0x00, device_id: 0xFF }.into()),
+          ExtendedId::new_unchecked(MessageId { device_type: DEVICE_TYPE_BROADCAST, manufacturer: MANUFACTURER_GRAPPLE, api_class: 0x00, api_index: 0x00, device_id: DEVICE_ID_BROADCAST }.into()),
+          ExtendedId::new_unchecked(MessageId { device_type: 0xFF, manufacturer: 0xFF, api_class: 0x00, api_index: 0x00, device_id: 0xFF }.into()),
         ))
         // Specific to this sensor. Note we don't check for Device ID here, since it may change whilst we're still booted. 
         .enable_bank(2, bxcan::Fifo::Fifo0, Mask32::frames_with_ext_id(
-          ExtendedId::new_unchecked(CANId { device_type: DEVICE_TYPE_DISTANCE_SENSOR, manufacturer: MANUFACTURER_GRAPPLE, api_class: 0x00, api_index: 0x00, device_id: 0x00 }.into()),
-          ExtendedId::new_unchecked(CANId { device_type: 0xFF, manufacturer: 0xFF, api_class: 0x00, api_index: 0x00, device_id: 0x00 }.into()),
+          ExtendedId::new_unchecked(MessageId { device_type: DEVICE_TYPE_DISTANCE_SENSOR, manufacturer: MANUFACTURER_GRAPPLE, api_class: 0x00, api_index: 0x00, device_id: 0x00 }.into()),
+          ExtendedId::new_unchecked(MessageId { device_type: 0xFF, manufacturer: 0xFF, api_class: 0x00, api_index: 0x00, device_id: 0x00 }.into()),
         ));
     }
       
@@ -246,7 +245,7 @@ mod app {
         can_rx,
         can_tx,
         flash,
-        reassemble: grapple_frc_msgs::can::FragmentReassembler::new(1000)
+        reassemble: FragmentReassembler::new(1000)
       },
       init::Monotonics()
     )
@@ -302,12 +301,17 @@ mod app {
     (ctx.shared.sensor, ctx.shared.can_tx_queue, ctx.shared.last_result, ctx.shared.config).lock(|sensor, q, result, config| {
       if Ok(true) == sensor.data_ready() {
         if let Ok(r) = sensor.get_result() {
-          enqueue(CANMessage::Message(
-            Message::new(
-              config.current().device_id,
-              ManufacturerMessage::Grapple(GrappleDeviceMessage::DistanceSensor(
-                lasercan::LaserCanMessage::Status(LaserCanStatusFrame { status: r.status as u8, distance_mm: r.distance_mm, ambient: r.ambient, long: config.current().long, budget_ms: config.current().timing_budget, roi: config.current().roi.clone() })
-              ))
+          enqueue(TaggedGrappleMessage::new(
+            config.current().device_id,
+            GrappleDeviceMessage::DistanceSensor(
+              lasercan::LaserCanMessage::Status(LaserCanStatusFrame {
+                status: r.status as u8,
+                distance_mm: r.distance_mm,
+                ambient: r.ambient,
+                long: config.current().long,
+                budget_ms: config.current().timing_budget,
+                roi: config.current().roi.clone()
+              })
             )
           ), q);
 
@@ -358,81 +362,115 @@ mod app {
         match ctx.local.can_rx.receive() {
           Ok(frame) => match (frame.id(), frame.data()) {
             (bxcan::Id::Extended(ext), data) => {
-              let d = data.map(|x| x.deref()).unwrap_or(&[]);
-              let msg = CANMessage::from(UnparsedCANMessage::new(ext.as_raw(), d));
-              let reassembled = ctx.local.reassemble.process(crate::TIME_MS.load(core::sync::atomic::Ordering::Relaxed) as i64, d.len() as u8, msg);
-              match reassembled {
-                Some((_, msg)) => {
-                  match msg {
-                    CANMessage::Message(msg) => {
-                      if msg.validate().is_ok() {
-                        match msg.msg {
-                          ManufacturerMessage::Grapple(GrappleDeviceMessage::Broadcast(bmsg)) => match bmsg {
-                            GrappleBroadcastMessage::DeviceInfo(di) => match di {
-                              device_info::GrappleDeviceInfo::EnumerateRequest => {
-                                let new_msg = Message::new(
-                                  cfg.current().device_id,
-                                  ManufacturerMessage::Grapple(GrappleDeviceMessage::Broadcast(
-                                    GrappleBroadcastMessage::DeviceInfo(device_info::GrappleDeviceInfo::EnumerateResponse {
-                                      model_id: META_MODEL_ID.clone(),
-                                      serial: my_serial,
-                                      is_dfu: false,
-                                      is_dfu_in_progress: false,
-                                      version: META_VERSION.to_owned(),
-                                      name: cfg.current().name.clone()
-                                    })
-                                  ))
-                                );
+              
+              let id = MessageId::from(ext.as_raw());
+              // Only process messages bound for us
+              if id.device_id == DEVICE_ID_BROADCAST || id.device_id == cfg.current().device_id {
+                let d = data.map(|x| x.deref()).unwrap_or(&[]);
+                match ManufacturerMessage::read(&mut BitView::new(d), id.clone()) {
+                  Some(ManufacturerMessage::Grapple(grpl_msg)) => {
+                    match ctx.local.reassemble.defragment(crate::TIME_MS.load(core::sync::atomic::Ordering::Relaxed) as i64, &id, grpl_msg) {
+                      Some(GrappleDeviceMessage::Broadcast(bcast)) => match bcast {
+                        GrappleBroadcastMessage::DeviceInfo(di) => match di {
+                          device_info::GrappleDeviceInfo::EnumerateRequest => {
+                            let new_msg = TaggedGrappleMessage::new(
+                              cfg.current().device_id,
+                              GrappleDeviceMessage::Broadcast(
+                                GrappleBroadcastMessage::DeviceInfo(device_info::GrappleDeviceInfo::EnumerateResponse {
+                                  model_id: META_MODEL_ID.clone(),
+                                  serial: my_serial,
+                                  is_dfu: false,
+                                  is_dfu_in_progress: false,
+                                  version: META_VERSION.to_owned(),
+                                  name: cfg.current().name.clone()
+                                })
+                              )
+                            );
 
-                                ctx.shared.can_tx_queue.lock(|q| enqueue(CANMessage::Message(new_msg), q));
-                              },
-                              device_info::GrappleDeviceInfo::Blink { serial } if serial == my_serial => {
-                                ctx.shared.blink_timer.lock(|timer| { *timer = 60 });
-                              },
-                              device_info::GrappleDeviceInfo::SetName { serial, name } if serial == my_serial => {
-                                cfg.current_mut().name = name;
-                                cfg.commit();
-                              },
-                              device_info::GrappleDeviceInfo::SetId { serial, new_id } if serial == my_serial => {
-                                cfg.current_mut().device_id = new_id;
-                                cfg.commit();
-                              },
-                              device_info::GrappleDeviceInfo::CommitConfig { serial } if serial == my_serial => {
-                                cfg.commit();
-                              },
-                              _ => ()
-                            },
+                            ctx.shared.can_tx_queue.lock(|q| enqueue(new_msg, q));
                           },
-                          ManufacturerMessage::Grapple(GrappleDeviceMessage::FirmwareUpdate(fwupdate)) => match fwupdate {
-                            firmware::GrappleFirmwareMessage::StartFieldUpgrade { serial } if serial == my_serial => {
-                              let mut writer = ctx.local.flash.writer(flash::SectorSize::Sz1K, flash::FlashSize::Sz64K);
-                              lasercan_common::bootutil::start_field_upgrade(&mut writer);
-                            },
-                            _ => ()
+                          device_info::GrappleDeviceInfo::Blink { serial } if serial == my_serial => {
+                            ctx.shared.blink_timer.lock(|timer| { *timer = 60 });
                           },
-                          ManufacturerMessage::Grapple(GrappleDeviceMessage::DistanceSensor(dist)) if msg.device_id == cfg.current().device_id => match dist {
-                            lasercan::LaserCanMessage::SetRange { long } => {
-                              cfg.current_mut().long = long;
-                              ctx.shared.sensor.lock(|sensor| apply_configuration(sensor.as_mut(), cfg.current()));
-                            },
-                            lasercan::LaserCanMessage::SetRoi { roi } => {
-                              cfg.current_mut().roi = roi;
-                              ctx.shared.sensor.lock(|sensor| apply_configuration(sensor.as_mut(), cfg.current()));
-                            },
-                            lasercan::LaserCanMessage::SetTimingBudget { budget } => {
-                              cfg.current_mut().timing_budget = budget.clamp(20, 127);
-                              ctx.shared.sensor.lock(|sensor| apply_configuration(sensor.as_mut(), cfg.current()));
-                            },
-                            _ => ()
-                          }
+                          device_info::GrappleDeviceInfo::SetName { serial, name } if serial == my_serial => {
+                            cfg.current_mut().name = name;
+                            cfg.commit();
+                          },
+                          device_info::GrappleDeviceInfo::SetId { serial, new_id } if serial == my_serial => {
+                            cfg.current_mut().device_id = new_id;
+                            cfg.commit();
+                          },
+                          device_info::GrappleDeviceInfo::CommitConfig { serial } if serial == my_serial => {
+                            cfg.commit();
+                          },
                           _ => ()
                         }
-                      }
-                    },
-                    _ => ()
-                  }
-                },
-                _ => ()
+                      },
+                      Some(GrappleDeviceMessage::FirmwareUpdate(GrappleFirmwareMessage::StartFieldUpgrade { serial })) if serial == my_serial => {
+                        let mut writer = ctx.local.flash.writer(flash::SectorSize::Sz1K, flash::FlashSize::Sz64K);
+                        lasercan_common::bootutil::start_field_upgrade(&mut writer);
+                      },
+                      Some(GrappleDeviceMessage::DistanceSensor(msg)) => match msg {
+                        lasercan::LaserCanMessage::SetRange(Request::Request(long)) => {
+                          cfg.current_mut().long = long;
+                          cfg.commit();
+                          ctx.shared.sensor.lock(|sensor| apply_configuration(sensor.as_mut(), cfg.current()));
+                          
+                          let reply = TaggedGrappleMessage::new(
+                            cfg.current().device_id,
+                            GrappleDeviceMessage::DistanceSensor(lasercan::LaserCanMessage::SetRange(Request::Ack(Ok(()))))
+                          );
+                          ctx.shared.can_tx_queue.lock(|q| enqueue(reply, q));
+                        },
+                        lasercan::LaserCanMessage::SetRoi(Request::Request(roi)) => {
+                          let ack = match roi.validate() {
+                            Ok(()) => {
+                              cfg.current_mut().roi = roi;
+                              cfg.commit();
+                              ctx.shared.sensor.lock(|sensor| apply_configuration(sensor.as_mut(), cfg.current()));
+                              Ok(())
+                            },
+                            Err(e) => Err(e)
+                          };
+
+                          let reply = TaggedGrappleMessage::new(
+                            cfg.current().device_id,
+                            GrappleDeviceMessage::DistanceSensor(lasercan::LaserCanMessage::SetRoi(Request::Ack(ack)))
+                          );
+                          ctx.shared.can_tx_queue.lock(|q| enqueue(reply, q));
+                        },
+                        lasercan::LaserCanMessage::SetTimingBudget(Request::Request(budget)) => {
+                          let budget = match budget {
+                            20 => Ok(20),
+                            33 => Ok(33),
+                            50 => Ok(50),
+                            100 => Ok(100),
+                            _ => Err(GrappleError::ParameterOutOfBounds(errors::CowStr::Borrowed("Invalid Timing Budget!")))
+                          };
+
+                          let ack = match budget {
+                            Ok(budget) => {
+                              cfg.current_mut().timing_budget = budget;
+                              cfg.commit();
+                              ctx.shared.sensor.lock(|sensor| apply_configuration(sensor.as_mut(), cfg.current()));
+                              Ok(())
+                            },
+                            Err(e) => Err(e)
+                          };
+
+                          let reply = TaggedGrappleMessage::new(
+                            cfg.current().device_id,
+                            GrappleDeviceMessage::DistanceSensor(lasercan::LaserCanMessage::SetTimingBudget(Request::Ack(ack)))
+                          );
+                          ctx.shared.can_tx_queue.lock(|q| enqueue(reply, q));
+                        },
+                        _ => ()
+                      },
+                      _ => ()
+                    }
+                  },
+                  _ => ()
+                }
               }
             },
             _ => ()
@@ -444,30 +482,20 @@ mod app {
     });
   }
 
-  fn enqueue(mut msg: CANMessage, q: &mut VecDeque<bxcan::Frame>) {
+  fn enqueue(mut msg: TaggedGrappleMessage, q: &mut VecDeque<bxcan::Frame>) {
     static FRAG_ID: core::sync::atomic::AtomicU8 = core::sync::atomic::AtomicU8::new(0);
-    msg.update(());
-    
-    match msg {
-      CANMessage::Message(msg) => {
-        let frag_id = FRAG_ID.load(core::sync::atomic::Ordering::Relaxed);
-        let msgs = grapple_frc_msgs::can::FragmentReassembler::maybe_split(msg, frag_id).unwrap();
-        
-        for msg in msgs {
-          let frame = unsafe {
-            bxcan::Frame::new_data(
-              ExtendedId::new_unchecked(Into::<u32>::into(msg.id.clone())),
-              bxcan::Data::new(&msg.payload[0..msg.len as usize]).unwrap()
-            )
-          };
 
-          q.push_back(frame);
-        }
-        rtic::pend(Interrupt::USB_HP_CAN_TX);
-
-        FRAG_ID.store(frag_id.wrapping_add(1), core::sync::atomic::Ordering::Relaxed);
-      },
-      _ => panic!("Can't send fragments or generics directly - use the FragmentReasssembler.")
-    }
+    let frag_id = FRAG_ID.load(core::sync::atomic::Ordering::Relaxed);
+    FragmentReassembler::maybe_fragment(msg.device_id, msg.msg, frag_id, &mut |id, buf| {
+      let frame = unsafe {
+        bxcan::Frame::new_data(
+          ExtendedId::new_unchecked(Into::<u32>::into(id.clone())),
+          bxcan::Data::new(buf).unwrap()
+        )
+      };
+      q.push_back(frame);
+    });
+    rtic::pend(Interrupt::USB_HP_CAN_TX);
+    FRAG_ID.store(frag_id.wrapping_add(1), core::sync::atomic::Ordering::Relaxed);
   }
 }
