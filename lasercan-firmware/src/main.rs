@@ -361,13 +361,12 @@ mod app {
     
     let my_serial = lasercan_common::get_serial_hash();
 
-    unsafe { asm!("nop") }
-
     ctx.shared.config.lock(|cfg| {
       loop {
         match ctx.local.can_rx.receive() {
           Ok(frame) => match (frame.id(), frame.data()) {
             (bxcan::Id::Extended(ext), data) => {
+              unsafe { asm!("nop") }
               
               let id = MessageId::from(ext.as_raw());
               // Only process messages bound for us

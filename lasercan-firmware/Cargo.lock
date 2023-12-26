@@ -277,9 +277,9 @@ dependencies = [
 
 [[package]]
 name = "grapple-frc-msgs"
-version = "2024.0.4"
+version = "2024.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "27e76fc8d413a8a60ff7050f6ac659d4f32123e7ff6ef71dca4b3609374e70e2"
+checksum = "96b0255bc7532ea01eb1d10406bf34e998f4f4ec4c4da13985f424b2450f8d05"
 dependencies = [
  "anyhow",
  "binmarshal",
@@ -356,7 +356,7 @@ dependencies = [
 
 [[package]]
 name = "lasercan-firmware"
-version = "2024.0.0"
+version = "2024.0.1"
 dependencies = [
  "bxcan",
  "cortex-m",
