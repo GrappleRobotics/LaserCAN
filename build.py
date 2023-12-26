@@ -9,6 +9,7 @@ def run(*cmd):
 
 def get_cargo_version(project):
   output = run("cd", project, "&&", "cargo", "metadata", "--no-deps", "--format-version", "1")
+  print("META: ", output)
   for item in json.loads(output)["packages"]:
     if item["name"] == project:
       return item["version"]
