@@ -8,7 +8,7 @@ def run(*cmd):
   return subprocess.check_output(cmd, env=os.environ.copy(), shell=True)
 
 def get_cargo_version(project):
-  output = run("cd", project, "&&", "cargo", "metadata", "--no-deps")
+  output = run("cd", project, "&&", "cargo", "metadata", "--no-deps", "--format-version", "1")
   for item in json.loads(output)["packages"]:
     if item["name"] == project:
       return item["version"]
