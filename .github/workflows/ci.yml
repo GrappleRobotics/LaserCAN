@@ -19,7 +19,7 @@ jobs:
       - name: Make Target Dir
         run: mkdir -p target
       - name: Build
-        run: make
+        run: python build.py
       - uses: actions/upload-artifact@v3
         with:
           name: Artifacts

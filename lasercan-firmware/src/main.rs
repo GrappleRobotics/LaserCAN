@@ -324,7 +324,7 @@ mod app {
 
   #[task(binds = USB_HP_CAN_TX, priority = 13, local = [can_tx], shared = [can_tx_queue, status_led])]
   fn can_tx(mut ctx: can_tx::Context) {
-    unsafe { asm!("nop") }
+    // unsafe { asm!("nop") }
 
     let tx = ctx.local.can_tx;
 
