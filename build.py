@@ -4,25 +4,30 @@ import shutil
 import subprocess
 import sys
 
-def run(*cmd):
-  return subprocess.check_output(cmd, env=os.environ.copy(), shell=True)
+def run(*cmd, cwd="."):
+  process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=sys.stderr, cwd=cwd)
+  output, error = process.communicate()
+
+  if process.returncode != 0:
+      raise Exception("File handling failed %d %s %s" % (process.returncode, output, error))
+  
+  return output
 
 def get_cargo_version(project):
-  output = run("cd", project, "&&", "cargo", "metadata", "--no-deps", "--format-version", "1")
-  print("META: ", output)
+  output = run("cargo", "metadata", "--no-deps", "--format-version", "1", cwd = project)
   for item in json.loads(output)["packages"]:
     if item["name"] == project:
       return item["version"]
   return None
 
 def build_bootloader():
-  run("cd", "lasercan-bootloader", "&&", "cargo", "build", "--release")
+  run("cargo", "build", "--release", cwd = "lasercan-bootloader")
   version = get_cargo_version("lasercan-bootloader")
   shutil.copy("lasercan-bootloader/target/thumbv7m-none-eabi/release/lasercan-bootloader", f"target/lasercan-bootloader-{version}.elf")
   run("arm-none-eabi-objcopy", "-O", "binary", f"target/lasercan-bootloader-{version}.elf", f"target/lasercan-bootloader-{version}.grplbt")
 
 def build_firmware():
-  run("cd", "lasercan-firmware", "&&", "cargo", "build", "--release")
+  run("cargo", "build", "--release", cwd = "lasercan-firmware")
   version = get_cargo_version("lasercan-firmware")
   run("arm-none-eabi-objcopy", '--update-section', '.firmware_flag=./firmware_ready_patch.bin', 'lasercan-firmware/target/thumbv7m-none-eabi/release/lasercan-firmware', f"target/lasercan-firmware-update-{version}.elf")
   run("arm-none-eabi-objcopy", "-O", "binary", f"target/lasercan-firmware-update-{version}.elf", f"target/lasercan-firmware-update-{version}.grplfw")
