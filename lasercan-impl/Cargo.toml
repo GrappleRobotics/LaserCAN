@@ -1,0 +1,9 @@
+[package]
+name = "grapple-lasercan"
+version = "2024.0.2"
+edition = "2021"
+
+[dependencies]
+grapple-frc-msgs = { version = "^2024.2.2", default-features = false, features = ["lasercan_nop_patch", "grapple_lasercan"] }
+grapple-config = { version = "^0.1.1" }
+smallvec = "1.11.2"
