@@ -2,7 +2,9 @@
 
 extern crate alloc;
 
-use alloc::{string::String, borrow::ToOwned};
+pub use grapple_frc_msgs;
+
+use alloc::{string::String, borrow::ToOwned, boxed::Box};
 use grapple_config::{ConfigurationMarshal, ConfigurationProvider, GenericConfigurationProvider};
 use grapple_frc_msgs::{grapple::{lasercan::{LaserCanRoi, LaserCanRangingMode, LaserCanMeasurement, LaserCanRoiU4, LaserCanTimingBudget, self}, errors::{GrappleResult, GrappleError}, TaggedGrappleMessage, fragments::{FragmentReassemblerRx, FragmentReassemblerTx, FragmentReassembler}, GrappleDeviceMessage, firmware::GrappleFirmwareMessage, GrappleBroadcastMessage, device_info::{GrappleDeviceInfo, GrappleModelId}, Request, MANUFACTURER_GRAPPLE, DEVICE_TYPE_DISTANCE_SENSOR}, MessageId, ManufacturerMessage, binmarshal::{Marshal, Demarshal, CowStr, BitView}, DEVICE_ID_BROADCAST, DEVICE_TYPE_FIRMWARE_UPGRADE, DEVICE_TYPE_BROADCAST};
 use grapple_frc_msgs::binmarshal;
@@ -95,17 +97,17 @@ pub const LED_TICK_IRQ_PRIORITY: usize = 1;
 pub const STATUS_TICK_PERIOD_MS: usize = 20;
 pub const STATUS_TICK_IRQ_PRIORITY: usize = 15;
 
-pub struct LaserCANImpl<WDG, SYST, DTB, CAN, SEN, MRSHL, IO> {
-  firmware_version: &'static str,
-  serial_number: u32,
+pub struct LaserCANImpl<WDG, SYST, DTB, CAN, IO> {
+  pub firmware_version: &'static str,
+  pub serial_number: u32,
 
-  watchdog: WDG,
-  systick: SYST,
-  to_bootloader: DTB,
-  can: CAN,
-  sensor: SEN,
-  config: ConfigurationProvider<LaserCanConfiguration, MRSHL>,
-  io: IO,
+  pub watchdog: WDG,
+  pub systick: SYST,
+  pub to_bootloader: DTB,
+  pub can: CAN,
+  pub sensor: Box<dyn Sensor + Send + Sync>,
+  pub config: Box<dyn GenericConfigurationProvider<LaserCanConfiguration> + Send>,
+  pub io: IO,
 
   reassemble: (FragmentReassemblerRx, FragmentReassemblerTx),
   led_counter: u32,
@@ -115,22 +117,21 @@ pub struct LaserCANImpl<WDG, SYST, DTB, CAN, SEN, MRSHL, IO> {
 
 impl<
   WDG: Watchdog, SYST: SysTick, DTB: DropToBootloader,
-  CAN: CanBus, SEN: Sensor, MRSHL: ConfigurationMarshal<LaserCanConfiguration>,
-  IO: InputOutput
-> LaserCANImpl<WDG, SYST, DTB, CAN, SEN, MRSHL, IO> {
-  pub fn new(
+  CAN: CanBus, IO: InputOutput
+> LaserCANImpl<WDG, SYST, DTB, CAN, IO> {
+  pub fn new<MRSHL: ConfigurationMarshal<LaserCanConfiguration> + 'static + Send>(
     firmware_version: &'static str,
     serial_number: u32,
     watchdog: WDG,
     systick: SYST,
     to_bootloader: DTB,
     can: CAN,
-    sensor: SEN,
+    sensor: Box<dyn Sensor + Send + Sync>,
     marshal: MRSHL,
     io: IO
   ) -> GrappleResult<'static, Self> {
-    let provider: ConfigurationProvider<LaserCanConfiguration, MRSHL> = ConfigurationProvider::new(marshal)
-      .map_err(|_| GrappleError::Generic(CowStr::Borrowed("Configuration Provider Initialisation Failed")))?;
+    let provider = Box::new(ConfigurationProvider::new(marshal)
+      .map_err(|_| GrappleError::Generic(CowStr::Borrowed("Configuration Provider Initialisation Failed")))?);
 
     let mut s = Self {
       firmware_version,

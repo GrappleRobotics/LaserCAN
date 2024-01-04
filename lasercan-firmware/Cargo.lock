@@ -40,9 +40,9 @@ checksum = "f8fe8f5a8a398345e52358e18ff07cc17a568fbca5c6f73873d3a62056309603"
 
 [[package]]
 name = "binmarshal"
-version = "0.2.8"
+version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ef52819335fe738d04a0941a49ccd3b54c12660611456e2919a6bbb86787bc7a"
+checksum = "3f9334da3cc3c1f73c4cb5849f784cfe380a12d604670f91f24cfd9bfa0b3b35"
 dependencies = [
  "anyhow",
  "binmarshal-macros",
@@ -50,9 +50,9 @@ dependencies = [
 
 [[package]]
 name = "binmarshal-macros"
-version = "0.2.7"
+version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a28cee2e730b6ddc4ea2afe66696682e79957e6f687f28a440d9124a532d4ddb"
+checksum = "9a928be789849c207d60b342918373711573e1a18635e132297b35f4cf2b2c7d"
 dependencies = [
  "darling",
  "proc-macro2",
@@ -266,9 +266,9 @@ checksum = "1d758ba1b47b00caf47f24925c0074ecb20d6dfcffe7f6d53395c0465674841a"
 
 [[package]]
 name = "grapple-config"
-version = "0.1.9"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5d74a07fdd4b60864ca11d1e1dbde0743de0a275ddf2413603d0ea1cd0303da8"
+checksum = "dcdfb34bc315cbecc0b16b9618f7d36077e8465181d034831771d235c7a8ca0e"
 dependencies = [
  "binmarshal",
  "embedded-hal",
@@ -277,14 +277,23 @@ dependencies = [
 
 [[package]]
 name = "grapple-frc-msgs"
-version = "2024.0.6"
+version = "2024.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7873a0302eaf78396f0f8def395b470f6ebe36649e770fa3312d7ad31f073072"
+checksum = "f1c89fbb3e8d1a976316c3f70024a23bb2b13b626151b3449cb1bd26fede33e2"
 dependencies = [
  "anyhow",
  "binmarshal",
  "smallvec",
  "strum_macros",
+]
+
+[[package]]
+name = "grapple-lasercan"
+version = "2024.1.0"
+dependencies = [
+ "grapple-config",
+ "grapple-frc-msgs",
+ "smallvec",
 ]
 
 [[package]]
@@ -356,7 +365,7 @@ dependencies = [
 
 [[package]]
 name = "lasercan-firmware"
-version = "2024.0.2"
+version = "2024.1.0"
 dependencies = [
  "bxcan",
  "cortex-m",
@@ -365,7 +374,7 @@ dependencies = [
  "embedded-alloc",
  "embedded-hal",
  "grapple-config",
- "grapple-frc-msgs",
+ "grapple-lasercan",
  "grapple-m24c64",
  "lasercan-common",
  "nb 1.1.0",

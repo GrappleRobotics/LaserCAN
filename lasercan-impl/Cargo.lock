@@ -10,33 +10,12 @@ checksum = "080e9890a082662b09c1ad45f567faeeb47f22b5fb23895fbe1e651e718e25ca"
 
 [[package]]
 name = "binmarshal"
-version = "0.2.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "56123c76502290a6e8a4d9124c3be15b463657a86270d9775e7d94fa652f5d05"
-dependencies = [
- "binmarshal-macros 0.2.7",
-]
-
-[[package]]
-name = "binmarshal"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3f9334da3cc3c1f73c4cb5849f784cfe380a12d604670f91f24cfd9bfa0b3b35"
 dependencies = [
  "anyhow",
- "binmarshal-macros 1.0.0",
-]
-
-[[package]]
-name = "binmarshal-macros"
-version = "0.2.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a28cee2e730b6ddc4ea2afe66696682e79957e6f687f28a440d9124a532d4ddb"
-dependencies = [
- "darling",
- "proc-macro2",
- "quote",
- "syn 2.0.46",
+ "binmarshal-macros",
 ]
 
 [[package]]
@@ -104,11 +83,11 @@ checksum = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
 
 [[package]]
 name = "grapple-config"
-version = "0.1.9"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5d74a07fdd4b60864ca11d1e1dbde0743de0a275ddf2413603d0ea1cd0303da8"
+checksum = "dcdfb34bc315cbecc0b16b9618f7d36077e8465181d034831771d235c7a8ca0e"
 dependencies = [
- "binmarshal 0.2.9",
+ "binmarshal",
  "embedded-hal",
 ]
 
@@ -119,14 +98,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f1c89fbb3e8d1a976316c3f70024a23bb2b13b626151b3449cb1bd26fede33e2"
 dependencies = [
  "anyhow",
- "binmarshal 1.0.2",
+ "binmarshal",
  "smallvec",
  "strum_macros",
 ]
 
 [[package]]
 name = "grapple-lasercan"
-version = "2024.0.2"
+version = "2024.1.0"
 dependencies = [
  "grapple-config",
  "grapple-frc-msgs",
