@@ -4,9 +4,9 @@ extern crate alloc;
 
 pub use grapple_frc_msgs;
 
-use alloc::{string::String, borrow::ToOwned, boxed::Box};
+use alloc::{string::String, borrow::{ToOwned, Cow}, boxed::Box};
 use grapple_config::{ConfigurationMarshal, ConfigurationProvider, GenericConfigurationProvider};
-use grapple_frc_msgs::{grapple::{lasercan::{LaserCanRoi, LaserCanRangingMode, LaserCanMeasurement, LaserCanRoiU4, LaserCanTimingBudget, self}, errors::{GrappleResult, GrappleError}, TaggedGrappleMessage, fragments::{FragmentReassemblerRx, FragmentReassemblerTx, FragmentReassembler}, GrappleDeviceMessage, firmware::GrappleFirmwareMessage, GrappleBroadcastMessage, device_info::{GrappleDeviceInfo, GrappleModelId}, Request, MANUFACTURER_GRAPPLE, DEVICE_TYPE_DISTANCE_SENSOR}, MessageId, ManufacturerMessage, binmarshal::{Marshal, Demarshal, CowStr, BitView}, DEVICE_ID_BROADCAST, DEVICE_TYPE_FIRMWARE_UPGRADE, DEVICE_TYPE_BROADCAST};
+use grapple_frc_msgs::{grapple::{lasercan::{LaserCanRoi, LaserCanRangingMode, LaserCanMeasurement, LaserCanRoiU4, LaserCanTimingBudget, self}, errors::{GrappleResult, GrappleError}, TaggedGrappleMessage, fragments::{FragmentReassemblerRx, FragmentReassemblerTx, FragmentReassembler}, GrappleDeviceMessage, firmware::GrappleFirmwareMessage, GrappleBroadcastMessage, device_info::{GrappleDeviceInfo, GrappleModelId}, Request, MANUFACTURER_GRAPPLE, DEVICE_TYPE_DISTANCE_SENSOR}, MessageId, ManufacturerMessage, binmarshal::{Marshal, Demarshal, BitView}, DEVICE_ID_BROADCAST, DEVICE_TYPE_FIRMWARE_UPGRADE, DEVICE_TYPE_BROADCAST};
 use grapple_frc_msgs::binmarshal;
 
 // CONFIGURATION
@@ -131,7 +131,7 @@ impl<
     io: IO
   ) -> GrappleResult<'static, Self> {
     let provider = Box::new(ConfigurationProvider::new(marshal)
-      .map_err(|_| GrappleError::Generic(CowStr::Borrowed("Configuration Provider Initialisation Failed")))?);
+      .map_err(|_| GrappleError::Generic(Cow::Borrowed("Configuration Provider Initialisation Failed").into()))?);
 
     let mut s = Self {
       firmware_version,
@@ -260,8 +260,8 @@ impl<
                         serial: self.serial_number,
                         is_dfu: false,
                         is_dfu_in_progress: false,
-                        version: self.firmware_version,
-                        name: &name
+                        version: Cow::Borrowed(self.firmware_version).into(),
+                        name: Cow::Borrowed(name.as_str()).into()
                       })
                     )
                   );
@@ -272,7 +272,7 @@ impl<
                   self.blink_counter = 60;
                 },
                 GrappleDeviceInfo::SetName { serial, name } if serial == self.serial_number => {
-                  self.config.current_mut().name = name.to_owned();
+                  self.config.current_mut().name = name.into_owned();
                   self.config.commit();
                 },
                 GrappleDeviceInfo::SetId { serial, new_id } if serial == self.serial_number => {
@@ -367,7 +367,7 @@ impl<
 
   fn apply_configuration(&mut self, cfg: &LaserCanConfiguration) -> GrappleResult<'static, ()> {
     if !cfg.validate() {
-      Err(GrappleError::FailedAssertion(CowStr::Borrowed("Invalid Configuration!")))?;
+      Err(GrappleError::FailedAssertion(Cow::Borrowed("Invalid Configuration!").into()))?;
     }
 
     self.sensor.stop_ranging()?;
@@ -381,7 +381,7 @@ impl<
   fn enqueue_can_msg(&mut self, msg: TaggedGrappleMessage) -> GrappleResult<'static, ()> {
     self.reassemble.1.maybe_fragment(msg.device_id, msg.msg, &mut |id, buf| {
       self.can.enqueue_msg(id, buf)
-    }).map_err(|_| GrappleError::Generic(CowStr::Borrowed("Failed to encode message")))?;
+    }).map_err(|_| GrappleError::Generic(Cow::Borrowed("Failed to encode message").into()))?;
     Ok(())
   }
 }

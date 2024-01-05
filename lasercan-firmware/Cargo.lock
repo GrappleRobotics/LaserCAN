@@ -4,9 +4,9 @@ version = 3
 
 [[package]]
 name = "anyhow"
-version = "1.0.76"
+version = "1.0.79"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "59d2a3357dde987206219e78ecfbbb6e8dad06cbb65292758d3270e6254f7355"
+checksum = "080e9890a082662b09c1ad45f567faeeb47f22b5fb23895fbe1e651e718e25ca"
 
 [[package]]
 name = "atomic-polyfill"
@@ -40,24 +40,25 @@ checksum = "f8fe8f5a8a398345e52358e18ff07cc17a568fbca5c6f73873d3a62056309603"
 
 [[package]]
 name = "binmarshal"
-version = "1.0.2"
+version = "1.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3f9334da3cc3c1f73c4cb5849f784cfe380a12d604670f91f24cfd9bfa0b3b35"
+checksum = "365d293b4ec45d0fd115c7afe7826fbcb03a7ea45a6cc7b2f4bade5a83b86a16"
 dependencies = [
  "anyhow",
  "binmarshal-macros",
+ "bounded-static",
 ]
 
 [[package]]
 name = "binmarshal-macros"
-version = "1.0.0"
+version = "1.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9a928be789849c207d60b342918373711573e1a18635e132297b35f4cf2b2c7d"
+checksum = "114cf8df10b630c3faeac80343e77d7615a6f9b369678283f9c5a3b148a15b7a"
 dependencies = [
  "darling",
  "proc-macro2",
  "quote",
- "syn 2.0.43",
+ "syn 2.0.48",
 ]
 
 [[package]]
@@ -77,6 +78,26 @@ name = "bitflags"
 version = "1.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
+
+[[package]]
+name = "bounded-static"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "befcd006bac1320307f10e03b10ab3439b04923f0a4156d589336fcf3b87ecd1"
+dependencies = [
+ "bounded-static-derive",
+]
+
+[[package]]
+name = "bounded-static-derive"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "491909891c3e27e631c7ad87e43e29ec9ff92673806bd80f55dc28c7962d3641"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.48",
+]
 
 [[package]]
 name = "bxcan"
@@ -190,7 +211,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "strsim",
- "syn 2.0.43",
+ "syn 2.0.48",
 ]
 
 [[package]]
@@ -201,7 +222,7 @@ checksum = "836a9bbc7ad63342d6d6e7b815ccab164bc77a2d95d84bc3117a8c0d5c98e2d5"
 dependencies = [
  "darling_core",
  "quote",
- "syn 2.0.43",
+ "syn 2.0.48",
 ]
 
 [[package]]
@@ -277,19 +298,20 @@ dependencies = [
 
 [[package]]
 name = "grapple-frc-msgs"
-version = "2024.2.2"
+version = "2024.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f1c89fbb3e8d1a976316c3f70024a23bb2b13b626151b3449cb1bd26fede33e2"
+checksum = "4cd9affe08c12a019da0bb5776ac07cbb8ac5b4c857978dc06844d175e175ae7"
 dependencies = [
  "anyhow",
  "binmarshal",
+ "bounded-static",
  "smallvec",
  "strum_macros",
 ]
 
 [[package]]
 name = "grapple-lasercan"
-version = "2024.1.0"
+version = "2024.2.0"
 dependencies = [
  "grapple-config",
  "grapple-frc-msgs",
@@ -365,7 +387,7 @@ dependencies = [
 
 [[package]]
 name = "lasercan-firmware"
-version = "2024.1.0"
+version = "2024.2.0"
 dependencies = [
  "bxcan",
  "cortex-m",
@@ -447,18 +469,18 @@ dependencies = [
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.71"
+version = "1.0.75"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "75cb1540fadbd5b8fbccc4dddad2734eba435053f725621c070711a14bb5f4b8"
+checksum = "907a61bd0f64c2f29cd1cf1dc34d05176426a3f504a78010f08416ddb7b13708"
 dependencies = [
  "unicode-ident",
 ]
 
 [[package]]
 name = "quote"
-version = "1.0.33"
+version = "1.0.35"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5267fca4496028628a95160fc423a33e8b2e6af8a5302579e322e4b520293cae"
+checksum = "291ec9ab5efd934aaf503a6466c5d5251535d108ee747472c3977cc5acc868ef"
 dependencies = [
  "proc-macro2",
 ]
@@ -502,7 +524,7 @@ version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bfa0f585226d2e68097d4f95d113b15b83a82e819ab25717ec0590d9584ef366"
 dependencies = [
- "semver 1.0.20",
+ "semver 1.0.21",
 ]
 
 [[package]]
@@ -528,9 +550,9 @@ dependencies = [
 
 [[package]]
 name = "semver"
-version = "1.0.20"
+version = "1.0.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "836fa6a3e1e547f9a2c4040802ec865b5d85f4014efe00555d7090a3dcaa1090"
+checksum = "b97ed7a9823b74f99c7742f5336af7be5ecd3eeafcb1507d1fa93347b1d589b0"
 
 [[package]]
 name = "semver-parser"
@@ -646,9 +668,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "2.0.43"
+version = "2.0.48"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ee659fb5f3d355364e1f3e5bc10fb82068efbf824a1e9d1c9504244a6469ad53"
+checksum = "0f3531638e407dfc0814761abb7c00a5b54992b849452a0646b7f65c9f770f3f"
 dependencies = [
  "proc-macro2",
  "quote",

@@ -8,7 +8,7 @@ use core::{mem::MaybeUninit, sync::atomic::AtomicU32};
 use alloc::{format, collections::VecDeque};
 use bxcan::{filter::Mask32, ExtendedId};
 use embedded_alloc::Heap;
-use grapple_lasercan::{grapple_frc_msgs::{grapple::{device_info::GrappleModelId, errors::{GrappleResult, GrappleError}, lasercan}, binmarshal::CowStr}, Sensor, Watchdog, SysTick, DropToBootloader, CanBus, InputOutput};
+use grapple_lasercan::{grapple_frc_msgs::{binmarshal::AsymmetricCow, grapple::{device_info::GrappleModelId, errors::{GrappleResult, GrappleError}, lasercan}}, Sensor, Watchdog, SysTick, DropToBootloader, CanBus, InputOutput};
 use lasercan_common::bootutil::{FIRMWARE_MAGIC, feed_watchdog};
 use panic_halt as _;
 use stm32f1xx_hal::{pac::{IWDG, CAN1, Interrupt}, flash, can::Can, gpio::{ErasedPin, Output}};
@@ -38,7 +38,7 @@ static TIME_MS: AtomicU32 = AtomicU32::new(0);
 
 macro_rules! convert_sensor_err {
   ($ex:expr) => {
-    $ex.map_err(|e| GrappleError::Generic(CowStr::Owned(format!("{:?}", e))))
+    $ex.map_err(|e| GrappleError::Generic(AsymmetricCow(alloc::borrow::Cow::Owned(format!("{:?}", e)))))
   }
 }
 
@@ -171,7 +171,7 @@ pub struct CanBusImpl {
 
 impl CanBusImpl {
   pub fn new(can_bus: bxcan::Can<Can<CAN1>>) -> Self {
-    Self { can: can_bus, queue: VecDeque::with_capacity(16), next_bank: 0 }
+    Self { can: can_bus, queue: VecDeque::with_capacity(64), next_bank: 0 }
   }
 }
 
@@ -224,14 +224,28 @@ mod app {
 
   #[init]
   fn init(mut ctx: init::Context) -> (SharedResources, LocalResources, init::Monotonics) {
+    let mut gpioa = ctx.device.GPIOA.split();
+    let mut gpiob = ctx.device.GPIOB.split();
+    let mut gpioc = ctx.device.GPIOC.split();
+    let mut afio = ctx.device.AFIO.constrain();
+
+    let pc15_board_rev_detect = gpioc.pc15.into_pull_up_input(&mut gpioc.crh);
+    
     let mut flash = ctx.device.FLASH.constrain();
-    let clocks = ctx.device.RCC.constrain().cfgr.freeze(&mut flash.acr);
+
+    let clocks = match pc15_board_rev_detect.is_low() {
+      false => {
+        // Rev 3 or Earlier (w/o Crystal)
+        ctx.device.RCC.constrain().cfgr.freeze(&mut flash.acr)
+      },
+      true => {
+        // Rev 4 or Later (w/ Crystal)
+        ctx.device.RCC.constrain().cfgr.use_hse(8.MHz()).freeze(&mut flash.acr)
+      }
+    };
 
     feed_watchdog(&mut ctx.device.IWDG);
 
-    let mut gpioa = ctx.device.GPIOA.split();
-    let mut gpiob = ctx.device.GPIOB.split();
-    let mut afio = ctx.device.AFIO.constrain();
     let (_pa15, _pb3, pb4) = afio.mapr.disable_jtag(gpioa.pa15, gpiob.pb3, gpiob.pb4);
 
     /* TIMER INIT */
@@ -373,6 +387,11 @@ mod app {
           Err(_) => unreachable!()
         }
       }
+
+      // Don't let the queue grow too much, otherwise we enter a crash loop
+      while i.can.queue.len() > 40 {
+        i.can.queue.pop_front();
+      }
     })
   }
 
@@ -398,5 +417,6 @@ mod app {
         }
       }
     });
+    unsafe { asm!("nop") }
   }
 }
