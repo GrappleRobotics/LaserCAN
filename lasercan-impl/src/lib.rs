@@ -190,7 +190,7 @@ impl<
 
   pub fn on_led_tick(&mut self) {
     if self.blink_counter > 0 {
-      if self.led_counter & 2 == 0 {
+      if self.led_counter % 2 == 0 {
         self.io.toggle_led();
       }
       self.blink_counter -= 1;
