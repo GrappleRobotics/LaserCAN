@@ -493,7 +493,7 @@
       "idf": "",
       "netlist": "",
       "specctra_dsn": "",
-      "step": "LaserCAN-Board.step",
+      "step": "LaserCAN-Rev4-Board.step",
       "vrml": ""
     },
     "page_layout_descr_file": ""
