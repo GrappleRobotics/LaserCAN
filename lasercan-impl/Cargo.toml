@@ -1,6 +1,6 @@
 [package]
 name = "grapple-lasercan"
-version = "2024.2.0"
+version = "2024.2.1"
 edition = "2021"
 description = "Implementation of Grapple Robotics' LaserCAN"
 documentation = "https://docs.rs/grapple-lasercan"

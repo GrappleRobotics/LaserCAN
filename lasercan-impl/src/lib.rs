@@ -337,7 +337,7 @@ impl<
           _ => ()
         }
       },
-      Err(_) => ( /* Ignore any malformed messages */ ),
+      _ => ( /* Ignore any malformed messages */ ),
     }
 
     true
