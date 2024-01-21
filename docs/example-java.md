@@ -8,6 +8,7 @@ In VSCode, hit CTRL+SHIFT+P and select "WPILib: Manage Vendor Libraries".  Sele
 package frc.robot;
 
 import au.grapplerobotics.LaserCan;
+import au.grapplerobotics.ConfigurationFailedException;
 import edu.wpi.first.wpilibj.TimedRobot;
 
 public class Robot extends TimedRobot {
@@ -17,9 +18,13 @@ public class Robot extends TimedRobot {
   public void robotInit() {
     lc = new LaserCan(0);
     // Optionally initialise the settings of the LaserCAN, if you haven't already done so in GrappleHook
-    lc.setRangingMode(LaserCan.RangingMode.SHORT);
-    lc.setRegionOfInterest(new LaserCan.RegionOfInterest(8, 8, 16, 16));
-    lc.setTimingBudget(LaserCan.TimingBudget.TIMING_BUDGET_33MS);
+    try {
+      lc.setRangingMode(LaserCan.RangingMode.SHORT);
+      lc.setRegionOfInterest(new LaserCan.RegionOfInterest(8, 8, 16, 16));
+      lc.setTimingBudget(LaserCan.TimingBudget.TIMING_BUDGET_33MS);
+    } catch (ConfigurationFailedException e) {
+      System.out.println("Configuration failed! " + e);
+    }
   }
 
   @Override

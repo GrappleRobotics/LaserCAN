@@ -2,6 +2,13 @@
 name = "grapple-lasercan"
 version = "2024.2.0"
 edition = "2021"
+description = "Implementation of Grapple Robotics' LaserCAN"
+documentation = "https://docs.rs/grapple-lasercan"
+repository = "https://github.com/GrappleRobotics/LaserCAN"
+readme = "../README.md"
+authors = ["Jaci Brunning"]
+
+license = "GPL-3.0"
 
 [dependencies]
 grapple-frc-msgs = { version = "^2024.2.2", default-features = false, features = ["lasercan_nop_patch", "grapple_lasercan"] }
