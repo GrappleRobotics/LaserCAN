@@ -39,7 +39,7 @@ Connect your RoboRIO over a USB cable, and open GrappleHook. Select RoboRIO, and
 In GrappleHook, select "Change ID" and set a new CAN ID for your LaserCAN. Choose something unique from other LaserCANs, otherwise they'll conflict!
 
 ## 7. Install the libgrapplefrc Vendor Library
-In VSCode, hit CTRL+SHIFT+P and select "WPILib: Manage Vendor Libraries".  Select "Install new libraries (offline)" and paste the following URL: https://storage.googleapis.com/grapple-frc-maven/libgrapplefrc2024.json
+In VSCode, hit CTRL+SHIFT+P and select "WPILib: Manage Vendor Libraries".  Select "Install new libraries (online)" and paste the following URL: https://storage.googleapis.com/grapple-frc-maven/libgrapplefrc2024.json
 
 ## 8. Use LaserCAN!
 See one of our examples: 
