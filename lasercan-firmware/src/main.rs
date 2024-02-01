@@ -230,6 +230,7 @@ mod app {
     let mut afio = ctx.device.AFIO.constrain();
 
     let pc15_board_rev_detect = gpioc.pc15.into_pull_up_input(&mut gpioc.crh);
+    let pc14_board_rev_detect = gpioc.pc14.into_pull_up_input(&mut gpioc.crh);
     
     let mut flash = ctx.device.FLASH.constrain();
 
@@ -246,7 +247,18 @@ mod app {
 
     feed_watchdog(&mut ctx.device.IWDG);
 
-    let (_pa15, _pb3, pb4) = afio.mapr.disable_jtag(gpioa.pa15, gpiob.pb3, gpiob.pb4);
+    let mut tof_shut_pin = match pc14_board_rev_detect.is_low() {
+      false => {
+        // Rev 4 or earlier
+        let (_pa15, _pb3, pb4) = afio.mapr.disable_jtag(gpioa.pa15, gpiob.pb3, gpiob.pb4);
+        pb4.into_push_pull_output(&mut gpiob.crl).erase()
+      },
+      true => {
+        // Rev 5 or later
+        gpiob.pb8.into_push_pull_output(&mut gpiob.crh).erase()
+      }
+    };
+    tof_shut_pin.set_low();
 
     /* TIMER INIT */
     let mut systick = ctx.core.SYST.counter_us(&clocks);
@@ -312,8 +324,7 @@ mod app {
     /* SENSOR INIT */
     let mut delay = ctx.device.TIM4.delay_ms(&clocks);
 
-    let mut tof_shut = pb4.into_push_pull_output(&mut gpiob.crl);
-    tof_shut.set_high();  // Enable sensor (shutdown is active low)
+    tof_shut_pin.set_high();  // Enable sensor (shutdown is active low)
     
     // Give the sensor some time to start up
     delay.delay_ms(20u16);
