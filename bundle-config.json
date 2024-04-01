@@ -1,0 +1,6 @@
+{
+  "procedure": [
+    { "action": "flash_bootloader" },
+    { "action": "flash_firmware" }
+  ]
+}
