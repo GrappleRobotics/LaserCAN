@@ -20,7 +20,7 @@ Insert the LaserCAN in an existing CAN line by connecting both sides of the Lase
 Alternatively, branch off from an existing CAN connection, forming a new branch that can be connected to one side of the LaserCAN. If connecting in this manner, ensure the stub length is short (i.e. a short branch).
 
 ### Star + Pass-Through
-If you have more than one LaserCAN, you can use the Star method to connect the first LaserCAN, and connect the rest through passthrough, starting at the first LaserCAN's unoccupied pads. Ensure you place a 120ohm termination resistor at the last LaserCAN, between the CANH and CANL pins.
+If you have more than one LaserCAN, you can use the Star method to connect the first LaserCAN, and connect the rest through passthrough, starting at the first LaserCAN's unoccupied pads. Ensure the total stub length is also short, less than 2 meters for 1Mbps CAN 2.0B.
 
 ## 3. Power on your LaserCAN
 Power on your robot to power on the LaserCAN. The orange LED should blink rapidly for 2-3 seconds before turning off. If the orange LED remains on, your LaserCAN may require a firmware update.
