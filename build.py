@@ -41,7 +41,7 @@ def flash():
   version = get_cargo_version("lasercan-firmware")
 
   run(
-    "grapple-bundle", "flash", "--chip", "STM32F103C8", f"target/LaserCAN-{version}.grplbndl",
+    "grapple-bundle", "flash", "--chip", "STM32F103C8", f"target/LaserCAN-{version}.grplbndl", "--connect-under-reset",
     capture = False
   )
 
