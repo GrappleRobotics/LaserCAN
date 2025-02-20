@@ -294,12 +294,6 @@ mod app {
     // This is ugly, but what can you do?
     let i2c_bus = new_cortexm!(BlockingI2c<I2C1, ( stm32f1xx_hal::gpio::gpiob::PB6<Alternate<OpenDrain>>, stm32f1xx_hal::gpio::gpiob::PB7<Alternate<OpenDrain>> )> = i2c).unwrap();
     
-    /* CONFIGURATION INIT */
-
-    let config_delay = ctx.device.TIM3.delay_ms(&clocks);
-    let eeprom = M24C64::new(i2c_bus.acquire_i2c(), 0b000);
-    let config_marshal = grapple_config::m24c64::M24C64ConfigurationMarshal::new(eeprom, 0, config_delay, PhantomData::<grapple_lasercan::LaserCanConfiguration>);
-    
     /* CAN INIT */
     
     let can = Can::new(ctx.device.CAN1, ctx.device.USB);
@@ -335,6 +329,15 @@ mod app {
     }
 
     sensor.init().unwrap();
+
+    // Give the sensor some more time
+    delay.delay_ms(500u16);
+
+    /* CONFIGURATION INIT */
+
+    let config_delay = ctx.device.TIM3.delay_ms(&clocks);
+    let eeprom = M24C64::new(i2c_bus.acquire_i2c(), 0b000);
+    let config_marshal = grapple_config::m24c64::M24C64ConfigurationMarshal::new(eeprom, 0, config_delay, PhantomData::<grapple_lasercan::LaserCanConfiguration>);
 
     let lasercan_impl = LaserCANImpl::new(
       META_VERSION,

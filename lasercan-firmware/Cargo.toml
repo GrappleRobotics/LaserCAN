@@ -1,12 +1,12 @@
 [package]
 name = "lasercan-firmware"
-version = "2024.2.1"
+version = "2025.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-grapple-lasercan = { version = "^2024.1.0", path = "../lasercan-impl" }
+grapple-lasercan = { version = "^2025.1.0", path = "../lasercan-impl" }
 embedded-hal = "0.2.7"
 nb = "1"
 cortex-m = { version = "0.7.6", features = ["critical-section-single-core"] }

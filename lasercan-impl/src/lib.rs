@@ -154,8 +154,12 @@ impl<
     // Try to apply the configuration, but get rid of it if the configuration is invalid.
     let cfg = self.config.current().clone();
     match self.apply_configuration(&cfg) {
-      Ok(_) => (),
+      Ok(true) => (),
+      Ok(false) => {
+        Err(GrappleError::FailedAssertion(Cow::Borrowed("Sensor failed to accept configuration").into())).unwrap()
+      },
       Err(_) => {
+        // Validation Error
         *self.config.current_mut() = LaserCanConfiguration::default();
         self.config.commit();
         let cfg = self.config.current().clone();
@@ -352,11 +356,14 @@ impl<
     f(&mut candidate);
 
     match self.apply_configuration(&candidate) {
-      Ok(()) => {
+      Ok(true) => {
         *self.config.current_mut() = candidate;
         self.config.commit();
         Ok(())
       },
+      Ok(false) => {
+        Err(GrappleError::FailedAssertion(Cow::Borrowed("Sensor failed to accept configuration").into()))
+      }
       Err(e) => {
         let cfg = self.config.current().clone();
         self.apply_configuration(&cfg).ok();
@@ -365,16 +372,29 @@ impl<
     }
   }
 
-  fn apply_configuration(&mut self, cfg: &LaserCanConfiguration) -> GrappleResult<'static, ()> {
+  fn apply_configuration(&mut self, cfg: &LaserCanConfiguration) -> GrappleResult<'static, bool> {
     if !cfg.validate() {
       Err(GrappleError::FailedAssertion(Cow::Borrowed("Invalid Configuration!").into()))?;
     }
 
+    let mut i = 0;
+    while let Err(_) = self.apply_validated_configuration(cfg) {
+      if i > 10 {
+        return Ok(false)
+      }
+      
+      i += 1;
+    }
+    Ok(true)
+  }
+
+  fn apply_validated_configuration(&mut self, cfg: &LaserCanConfiguration) -> GrappleResult<'static, ()> {
     self.sensor.stop_ranging()?;
     self.sensor.set_ranging_mode(cfg.ranging_mode.clone())?;
     self.sensor.set_roi(cfg.roi.clone())?;
     self.sensor.set_timing_budget_ms(cfg.timing_budget.clone())?;
     self.sensor.start_ranging()?;
+
     Ok(())
   }
 
