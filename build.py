@@ -3,6 +3,7 @@ import os
 import shutil
 import subprocess
 import sys
+import zipfile
 
 def run(*cmd, cwd=".", capture = True):
   process = subprocess.Popen(cmd, stdout=subprocess.PIPE if capture else sys.stdout, stderr=sys.stderr, cwd=cwd)
@@ -32,6 +33,27 @@ def build():
     "-c", "bundle-config.json",
     "--lasercan-rev1-bootloader-check",
     f"target/LaserCAN-{version}.grplbndl",
+    capture = False
+  )
+
+  with open(f"target/LaserCAN-{version}.grplbndl", "rb") as f:
+    with zipfile.ZipFile(f) as zf:
+      index = json.loads(zf.read("index").decode("utf-8"))
+      bl_filename = index["bootloader_update_bin"]
+      bl_bytes = zf.read(bl_filename)
+      with open(f"target/{bl_filename}", "wb") as bf:
+        bf.write(bl_bytes)
+
+  version_bl_update = get_cargo_version("lasercan-bootloader-update")
+
+  run("cargo", "build", "--release", cwd = "lasercan-bootloader-update")
+  run(
+    "grapple-bundle", "build",
+    "-b", "lasercan-bootloader/target/thumbv7m-none-eabi/release/lasercan-bootloader",
+    "-f", "lasercan-bootloader-update/target/thumbv7m-none-eabi/release/lasercan-bootloader-update",
+    "-c", "bundle-config.json",
+    "--lasercan-rev1-bootloader-check",
+    f"target/SEE-DOCS-LaserCAN-BOOTLOADER-UPDATE-{version_bl_update}.grplbndl",
     capture = False
   )
 

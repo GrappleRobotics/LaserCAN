@@ -34,11 +34,11 @@ const WATCHDOG_COUNTER_ADDR: usize = 0x2000_0000;
 
 #[rtic::app(device = stm32f1xx_hal::pac, peripherals = true)]
 mod app {
-  use alloc::collections::VecDeque;
+  use alloc::{borrow::Cow, collections::VecDeque, format, string::String};
   use bxcan::{ExtendedId, filter::Mask32, Interrupts, Rx0, Tx};
   use core::ops::Deref;
   use cortex_m::peripheral::SCB;
-  use grapple_frc_msgs::{DEVICE_TYPE_FIRMWARE_UPGRADE, binmarshal::{Demarshal, rw::BitView}, grapple::{MANUFACTURER_GRAPPLE, GrappleBroadcastMessage, device_info::GrappleDeviceInfo, GrappleDeviceMessage, firmware::GrappleFirmwareMessage, TaggedGrappleMessage, fragments::{FragmentReassembler, FragmentReassemblerRx, FragmentReassemblerTx}}, DEVICE_ID_BROADCAST, DEVICE_TYPE_BROADCAST, ManufacturerMessage, MessageId};
+  use grapple_frc_msgs::{binmarshal::{rw::BitView, Demarshal}, grapple::{device_info::GrappleDeviceInfo, errors::{GrappleError, GrappleResult}, firmware::{FlashParameters, GrappleFirmwareMessage}, fragments::{FragmentReassembler, FragmentReassemblerRx, FragmentReassemblerTx}, GrappleBroadcastMessage, GrappleDeviceMessage, Request, TaggedGrappleMessage, MANUFACTURER_GRAPPLE}, ManufacturerMessage, MessageId, DEVICE_ID_BROADCAST, DEVICE_TYPE_BROADCAST, DEVICE_TYPE_FIRMWARE_UPGRADE};
   use lasercan_common::bootutil::{is_firmware_update_in_progress, is_user_code_present, FLASH_USER, FLASH_META_FIRMWARE_RESET_LOC};
   use stm32f1xx_hal::{prelude::*, watchdog::IndependentWatchdog, can::Can, pac::{CAN1, Interrupt}, gpio::{ErasedPin, Output}, flash::{self, FLASH_START}};
   use tiny_rng::Rand;
@@ -147,9 +147,9 @@ mod app {
     // Perform arbitration
     let mut queue = VecDeque::with_capacity(16);
 
-    let (reassemble_rx, reassemble_tx) = FragmentReassembler::new(1000, 8).split();
+    let (reassemble_rx, mut reassemble_tx) = FragmentReassembler::new(1000, 8).split();
 
-    enqueue(&&reassemble_tx, TaggedGrappleMessage::new(
+    enqueue(&mut reassemble_tx, TaggedGrappleMessage::new(
       0,
       GrappleDeviceMessage::Broadcast(
         GrappleBroadcastMessage::DeviceInfo(GrappleDeviceInfo::ArbitrationRequest)
@@ -220,8 +220,9 @@ mod app {
               let d = data.map(|x| x.deref()).unwrap_or(&[]);
               match ManufacturerMessage::read(&mut BitView::new(d), id.clone()) {
                 Ok(ManufacturerMessage::Grapple(grpl_msg)) => {
-                  ctx.local.reassemble_rx.defragment(0 as i64, &id, grpl_msg, |msg| {
-                    match msg {
+                  let mut storage = alloc::vec![];
+                  match ctx.local.reassemble_rx.defragment(0 as i64, &id, grpl_msg, &mut storage) {
+                    Ok(Some((_id, msg))) => match msg {
                       GrappleDeviceMessage::Broadcast(bmsg) => match bmsg {
                         GrappleBroadcastMessage::DeviceInfo(di) => match di {
                           GrappleDeviceInfo::ArbitrationRequest if id.device_id == my_id => {
@@ -246,7 +247,7 @@ mod app {
                               )
                             });
                             
-                            ctx.shared.can_tx_queue.lock(|q| enqueue(&ctx.shared.reassemble_tx, msg, q));
+                            ctx.shared.can_tx_queue.lock(|q| enqueue(&mut ctx.shared.reassemble_tx, msg, q));
                           },
                           GrappleDeviceInfo::EnumerateRequest => {
                             let new_msg = TaggedGrappleMessage::new(
@@ -257,47 +258,104 @@ mod app {
                                   serial: my_serial,
                                   is_dfu: true,
                                   is_dfu_in_progress: *ctx.local.offset != 0,
-                                  version: META_BOOTLOADER_VERSION,
-                                  name: ""
+                                  version: Cow::Borrowed(META_BOOTLOADER_VERSION).into(),
+                                  name: Cow::Borrowed("").into()
                                 })
                               )
                             );
-                            ctx.shared.can_tx_queue.lock(|q| enqueue(&ctx.shared.reassemble_tx, new_msg, q));
+                            ctx.shared.can_tx_queue.lock(|q| enqueue(&mut ctx.shared.reassemble_tx, new_msg, q));
                           },
                           _ => ()
                         },
                       },
                       GrappleDeviceMessage::FirmwareUpdate(fwupdate) => match fwupdate {
                         GrappleFirmwareMessage::StartFieldUpgrade { .. } => (),
-                        GrappleFirmwareMessage::UpdatePart(data) => {
+                        // GrappleFirmwareMessage::UpdatePart(data) => {
+                        //   ctx.shared.status_led.lock(|led| led.toggle());
+
+                        //   let mut flash_writer = ctx.local.flash.writer(flash::SectorSize::Sz1K, flash::FlashSize::Sz64K);
+                        //   let user_code_offset = FLASH_USER as usize - FLASH_START as usize;
+
+                        //   // Erase the sector if required. Obviously, this requires our data step size to be a factor of 1024. 
+                        //   if (user_code_offset + *ctx.local.offset) as u32 % 1024 == 0 {
+                        //     // Erase the flash region
+                        //     flash_writer.erase((user_code_offset + *ctx.local.offset) as u32, 1024).unwrap();
+                        //   }
+
+                        //   // Write the flash data (must be aligned to 16 bits)
+                        //   flash_writer.write((user_code_offset + *ctx.local.offset) as u32, &data[..]).unwrap();
+
+                        //   *ctx.local.offset += data.len() as usize;
+
+                        //   // Reply with an ACK
+                        //   let new_msg = TaggedGrappleMessage::new(
+                        //     my_id,
+                        //     GrappleDeviceMessage::FirmwareUpdate(
+                        //       GrappleFirmwareMessage::UpdatePartAck
+                        //     )
+                        //   );
+                        //   ctx.shared.can_tx_queue.lock(|q| enqueue(&mut ctx.shared.reassemble_tx, new_msg, q));
+                        // },
+                        GrappleFirmwareMessage::UpdatePartV2(Request::Request(req)) => {
                           ctx.shared.status_led.lock(|led| led.toggle());
 
                           let mut flash_writer = ctx.local.flash.writer(flash::SectorSize::Sz1K, flash::FlashSize::Sz64K);
                           let user_code_offset = FLASH_USER as usize - FLASH_START as usize;
 
-                          // Erase the sector if required. Obviously, this requires our data step size to be a factor of 1024. 
-                          if (user_code_offset + *ctx.local.offset) as u32 % 1024 == 0 {
-                            // Erase the flash region
-                            flash_writer.erase((user_code_offset + *ctx.local.offset) as u32, 1024).unwrap();
+                          let mut start = req.offset;
+                          let end = req.offset + req.payload.len() as u32;
+
+                          // Try to resolve the offset. In the case of a retry, where the ack was lost, this is to make sure we're offsetting correctly
+                          if *ctx.local.offset > (start as usize) {
+                            start = *ctx.local.offset as u32;
                           }
 
-                          // Write the flash data (must be aligned to 16 bits)
-                          flash_writer.write((user_code_offset + *ctx.local.offset) as u32, &data[..]).unwrap();
+                          let mut result = Ok(());
 
-                          *ctx.local.offset += data.len() as usize;
+                          if end - start > 0 && *ctx.local.offset < end as usize {
+                            // See if any part of the write requires an erase.
+                            let next_erase = end / 1024;
+                            if (next_erase * 1024) >= start {
+                              result = flash_writer.erase(user_code_offset as u32 + (next_erase * 1024), 1024);
+                            }
 
-                          // Reply with an ACK
+                            // Write the flash data (must be aligned to 16 bits)
+                            if result.is_ok() {
+                              result = flash_writer.write((user_code_offset + *ctx.local.offset) as u32, &req.payload[(start as usize - req.offset as usize)..]);
+                            }
+                          }
+
+                          let grapple_result = match result {
+                            Ok(_) => GrappleResult::Ok(()),
+                            Err(_) => GrappleResult::Err(GrappleError::Generic(Cow::<str>::Borrowed("Failed to flash").into())),
+                          };
+                          
                           let new_msg = TaggedGrappleMessage::new(
                             my_id,
                             GrappleDeviceMessage::FirmwareUpdate(
-                              GrappleFirmwareMessage::UpdatePartAck
+                              GrappleFirmwareMessage::UpdatePartV2(Request::Ack(grapple_result))
                             )
                           );
-                          ctx.shared.can_tx_queue.lock(|q| enqueue(&ctx.shared.reassemble_tx, new_msg, q));
+
+                          *ctx.local.offset += (end - start) as usize;
+
+                          ctx.shared.can_tx_queue.lock(|q| enqueue(&mut ctx.shared.reassemble_tx, new_msg, q));
+                        },
+                        GrappleFirmwareMessage::GetFlashParameters(Request::Request(())) => {
+                          let new_msg = TaggedGrappleMessage::new(
+                            my_id,
+                            GrappleDeviceMessage::FirmwareUpdate(
+                              GrappleFirmwareMessage::GetFlashParameters(Request::Ack(GrappleResult::Ok(FlashParameters {
+                                flash_compat_version: 2,
+                                align: 16,
+                                payload_len: 32
+                              })))
+                            )
+                          );
+                          ctx.shared.can_tx_queue.lock(|q| enqueue(&mut ctx.shared.reassemble_tx, new_msg, q));
                         },
                         GrappleFirmwareMessage::UpdateDone => {
                           let mut flash_writer = ctx.local.flash.writer(flash::SectorSize::Sz1K, flash::FlashSize::Sz64K);
-                          ctx.shared.status_led.lock(|led| led.set_high());
 
                           // /* Mark the firmware as good to go */
                           flash_writer.write(FLASH_META_FIRMWARE_RESET_LOC as u32 - FLASH_START, &[0xDE, 0xAD, 0xBE, 0xEF]).unwrap();
@@ -306,8 +364,10 @@ mod app {
                         },
                         _ => ()
                       },
-                    }
-                  }).ok();
+                      _ => ()
+                    },
+                    _ => ()
+                  }
                 },
                 _ => ()
               }
@@ -333,11 +393,8 @@ mod app {
     };
   }
 
-  fn enqueue(reassembler: &FragmentReassemblerTx, msg: TaggedGrappleMessage, q: &mut VecDeque<bxcan::Frame>) {
-    static FRAG_ID: core::sync::atomic::AtomicU8 = core::sync::atomic::AtomicU8::new(0);
-
-    let frag_id = FRAG_ID.load(core::sync::atomic::Ordering::Relaxed);
-    reassembler.maybe_fragment(msg.device_id, msg.msg, frag_id, &mut |id, buf| {
+  fn enqueue(reassembler: &mut FragmentReassemblerTx, msg: TaggedGrappleMessage, q: &mut VecDeque<bxcan::Frame>) {
+    reassembler.maybe_fragment(msg.device_id, msg.msg, &mut |id, buf| {
       let frame = unsafe {
         bxcan::Frame::new_data(
           ExtendedId::new_unchecked(Into::<u32>::into(id.clone())),
@@ -347,6 +404,5 @@ mod app {
       q.push_back(frame);
     }).ok();
     rtic::pend(Interrupt::USB_HP_CAN_TX);
-    FRAG_ID.store(frag_id.wrapping_add(1), core::sync::atomic::Ordering::Relaxed);
   }
 }

@@ -27,7 +27,7 @@ pub static META_MODEL_ID: GrappleModelId = GrappleModelId::LaserCan;
 
 #[global_allocator]
 static HEAP: Heap = Heap::empty();
-const HEAP_SIZE: usize = 4096;
+const HEAP_SIZE: usize = 6144;
 
 fn heap_init() {
   static mut HEAP_MEM: [MaybeUninit<u8>; HEAP_SIZE] = [MaybeUninit::uninit(); HEAP_SIZE];

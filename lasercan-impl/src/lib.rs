@@ -276,12 +276,16 @@ impl<
                   self.blink_counter = 60;
                 },
                 GrappleDeviceInfo::SetName { serial, name } if serial == self.serial_number => {
-                  self.config.current_mut().name = name.into_owned();
-                  self.config.commit();
+                  let old = core::mem::replace(&mut self.config.current_mut().name, name.into_owned());
+                  if !self.config.commit() {
+                    self.config.current_mut().name = old;
+                  }
                 },
                 GrappleDeviceInfo::SetId { serial, new_id } if serial == self.serial_number => {
-                  self.config.current_mut().device_id = new_id;
-                  self.config.commit();
+                  let old = core::mem::replace(&mut self.config.current_mut().device_id, new_id);
+                  if !self.config.commit() {
+                    self.config.current_mut().device_id = old;
+                  }
                 },
                 GrappleDeviceInfo::CommitConfig { serial } if serial == self.serial_number => {
                   self.config.commit();
@@ -357,9 +361,13 @@ impl<
 
     match self.apply_configuration(&candidate) {
       Ok(true) => {
-        *self.config.current_mut() = candidate;
-        self.config.commit();
-        Ok(())
+        let old = core::mem::replace(self.config.current_mut(), candidate);
+        if !self.config.commit() {
+          *self.config.current_mut() = old;
+          Err(GrappleError::Generic(Cow::Borrowed("Could not apply configuration").into()))
+        } else {
+          Ok(())
+        }
       },
       Ok(false) => {
         Err(GrappleError::FailedAssertion(Cow::Borrowed("Sensor failed to accept configuration").into()))

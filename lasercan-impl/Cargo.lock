@@ -104,9 +104,9 @@ checksum = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
 
 [[package]]
 name = "grapple-config"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dcdfb34bc315cbecc0b16b9618f7d36077e8465181d034831771d235c7a8ca0e"
+checksum = "d18ad1b3f58b8635856ddfd032c67cbe848d6e52e9a978d7bdc11e1a359da97f"
 dependencies = [
  "binmarshal",
  "embedded-hal",

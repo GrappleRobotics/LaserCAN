@@ -17,7 +17,7 @@ bxcan = "0.7.0"
 embedded-alloc = "0.5.1"
 lasercan-common = { path = "../lasercan-common" }
 cortex-m-rtic = "1.1.4"
-grapple-config = { version = "^0.2.0", features = ["m24c64"] }
+grapple-config = { version = "^0.2.1", features = ["m24c64"] }
 grapple-m24c64 = "0.1.1"
 vl53l1x-uld = "2.0.0"
 shared-bus = { version = "0.3.1", features = ["cortex-m"] }
